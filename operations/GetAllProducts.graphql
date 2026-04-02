@@ -1,0 +1,16 @@
+# Demo operation: Browse the product catalog
+# Run this in Explorer BEFORE the proposal to show the schema WITHOUT estimatedDelivery
+query GetAllProducts {
+  searchProducts {
+    id
+    title
+    description
+    category
+    variants {
+      id
+      colorway
+      price
+      size
+    }
+  }
+}

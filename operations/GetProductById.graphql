@@ -1,0 +1,18 @@
+# Demo operation: Fetch a single product for the detail page
+query GetProductById($productId: ID!) {
+  product(id: $productId) {
+    id
+    title
+    description
+    category
+    variants {
+      id
+      colorway
+      price
+      size
+    }
+  }
+}
+
+# Example variables:
+# { "productId": "product:1" }

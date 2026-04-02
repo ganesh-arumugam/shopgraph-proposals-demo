@@ -1,0 +1,22 @@
+{
+  "name": "shopgraph-proposals-demo",
+  "version": "1.0.0",
+  "description": "Live demo repo showcasing Apollo GraphOS Schema Proposals with CI governance and @contact-driven reviewer automation.",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "subgraphs"
+  ],
+  "scripts": {
+    "install:subgraphs": "npm install --prefix subgraphs",
+    "dev:subgraphs": "npm run dev --prefix subgraphs",
+    "start:subgraphs": "npm run start --prefix subgraphs",
+    "router:download": "cd router && bash download_router.sh",
+    "router:start": "cd router && bash start_router.sh",
+    "publish:schemas": "cd router && bash publish_subgraphs.sh",
+    "dev": "concurrently --names 'subgraphs,router' 'npm run dev:subgraphs' 'npm run router:start'"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

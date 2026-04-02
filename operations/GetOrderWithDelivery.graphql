@@ -1,0 +1,18 @@
+# Demo operation: Run this AFTER the Proposal is Implemented to prove the field is live.
+# This query will fail until estimatedDelivery is published to the schema.
+query GetOrderWithDelivery($orderId: ID!) {
+  order(id: $orderId) {
+    id
+    buyerId
+    status
+    placedAt
+    estimatedDelivery
+    items {
+      quantity
+      unitPrice
+    }
+  }
+}
+
+# Example variables:
+# { "orderId": "order:1" }

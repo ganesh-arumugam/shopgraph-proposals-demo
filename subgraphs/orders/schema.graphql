@@ -1,0 +1,95 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
+  @contact(
+    name: "Commerce Team"
+    url: "https://yourorg.slack.com/archives/C_COMMERCE"
+    description: "Owns order lifecycle, fulfillment, and delivery data. Ping [#commerce-oncall](https://yourorg.slack.com/archives/C_COMMERCE_ONCALL) for urgent issues."
+  )
+
+"Annotate a schema with contact information for the subgraph owner"
+directive @contact(
+  "Contact title of the subgraph owner"
+  name: String!
+  "URL where the subgraph owner can be reached"
+  url: String
+  "Other relevant notes; supports markdown links"
+  description: String
+) on SCHEMA
+
+type Query {
+  """
+  Get a specific order by ID. Use for order detail and confirmation pages.
+  """
+  order(id: ID!): Order
+
+  """
+  List all orders for the current session (demo: returns all orders).
+  """
+  orders: [Order]
+}
+
+"""
+A customer purchase. Contains the buyer and all purchased variants.
+"""
+type Order @key(fields: "id") {
+  """
+  Unique order identifier
+  """
+  id: ID!
+
+  """
+  The customer who placed this order
+  """
+  buyerId: ID!
+
+  """
+  All variants (products) included in this order
+  """
+  items: [OrderItem!]!
+
+  """
+  Current fulfilment status of the order
+  """
+  status: OrderStatus!
+
+  """
+  ISO 8601 date-time when the order was placed
+  """
+  placedAt: String!
+
+  # ─── PROPOSAL TARGET ────────────────────────────────────────────────────────
+  # The field below will be ADDED via a Schema Proposal in the live demo.
+  # DO NOT add estimatedDelivery here — it is intentionally absent.
+  # After the proposal is Approved and this branch passes CI, it will be added:
+  #
+  # """
+  # Estimated delivery date for this order (ISO 8601).
+  # Added via Schema Proposal: "Add estimatedDelivery to Order"
+  # """
+  # estimatedDelivery: String
+  # ────────────────────────────────────────────────────────────────────────────
+}
+
+"""
+A single line-item within an order
+"""
+type OrderItem {
+  variant: Variant!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+"""
+The lifecycle status of an order
+"""
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+type Variant @key(fields: "id", resolvable: false) {
+  id: ID!
+}

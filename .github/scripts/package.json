@@ -1,0 +1,6 @@
+{
+  "name": "@shopgraph/github-scripts",
+  "type": "module",
+  "private": true,
+  "description": "GitHub Actions scripts for ShopGraph proposals demo"
+}

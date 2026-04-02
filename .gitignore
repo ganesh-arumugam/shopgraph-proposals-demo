@@ -1,0 +1,6 @@
+node_modules/
+.env
+router/router
+*.tar.gz
+dist/
+.DS_Store

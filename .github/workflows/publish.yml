@@ -1,0 +1,59 @@
+name: Publish Schemas
+
+# Publishes subgraph schemas to GraphOS on merge to main.
+# Only runs when schema files change. Once published, GraphOS automatically
+# checks whether the changes match an approved Proposal and sets its status
+# to "Implemented" if all changes are accounted for.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "subgraphs/products/schema.graphql"
+      - "subgraphs/orders/schema.graphql"
+
+jobs:
+  publish-products:
+    name: "Publish — products subgraph"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Publish products schema to GraphOS
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+        run: |
+          rover subgraph publish ${{ vars.APOLLO_GRAPH_REF }} \
+            --name products \
+            --schema ./subgraphs/products/schema.graphql \
+            --routing-url ${{ vars.PRODUCTS_SUBGRAPH_URL }}
+
+  publish-orders:
+    name: "Publish — orders subgraph"
+    runs-on: ubuntu-latest
+    needs: publish-products
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Publish orders schema to GraphOS
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+        run: |
+          rover subgraph publish ${{ vars.APOLLO_GRAPH_REF }} \
+            --name orders \
+            --schema ./subgraphs/orders/schema.graphql \
+            --routing-url ${{ vars.ORDERS_SUBGRAPH_URL }}
+        # After this step succeeds, GraphOS matches published changes to Proposals.
+        # If all proposal changes are now published, the Proposal status
+        # automatically transitions to: ✅ Implemented
