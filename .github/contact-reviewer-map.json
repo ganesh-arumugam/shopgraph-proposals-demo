@@ -1,0 +1,11 @@
+{
+  "_comment": "Maps @contact directive 'name' values to GraphOS org member emails. These members will be set as default reviewers on Proposals when the sync-reviewers workflow runs.",
+  "Catalog Team": [
+    "catalog-lead@yourcompany.com",
+    "catalog-senior@yourcompany.com"
+  ],
+  "Commerce Team": [
+    "commerce-lead@yourcompany.com",
+    "commerce-senior@yourcompany.com"
+  ]
+}

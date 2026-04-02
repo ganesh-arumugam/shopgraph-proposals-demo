@@ -1,0 +1,10 @@
+{
+  "_comment": "EXAMPLE FILE. Copy to contact-reviewer-map.json and fill in real emails. Keys must exactly match the 'name' field of your @contact directives. Values are arrays of GraphOS org member email addresses.",
+  "My Backend Team": [
+    "tech-lead@yourcompany.com",
+    "senior-engineer@yourcompany.com"
+  ],
+  "Platform Team": [
+    "platform-lead@yourcompany.com"
+  ]
+}

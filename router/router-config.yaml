@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/apollographql/router/main/apollo-router/src/configuration/testdata/schema/v2.7.json
+
+supergraph:
+  listen: 127.0.0.1:4000
+
+# Propagate all incoming headers to subgraphs
+headers:
+  all:
+    request:
+      - propagate:
+          matching: .*
+
+# Allow local Explorer and client dev server to query the router
+cors:
+  origins:
+    - http://localhost:3000
+    - https://studio.apollographql.com
+
+# Enable sandbox in development
+sandbox:
+  enabled: true
+
+# Enable introspection for demo (disable in production)
+include_subgraph_errors:
+  all: true

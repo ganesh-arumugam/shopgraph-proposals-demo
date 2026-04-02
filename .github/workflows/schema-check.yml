@@ -1,0 +1,68 @@
+name: Schema Check
+
+# Runs rover subgraph check on every PR that touches a subgraph schema.
+# The Proposals check task is configured to ERROR severity in GraphOS Studio:
+#   Graph Settings → Proposals → Schema Checks → Severity: Error
+#
+# This means: if the schema changes are NOT part of an approved Proposal,
+# this check FAILS and the PR cannot be merged. This is the CI governance gate.
+
+on:
+  pull_request:
+    paths:
+      - "subgraphs/products/schema.graphql"
+      - "subgraphs/orders/schema.graphql"
+
+jobs:
+  schema-check-products:
+    name: "Check — products subgraph"
+    runs-on: ubuntu-latest
+    # Only run if the products schema changed
+    if: |
+      contains(github.event.pull_request.changed_files, 'subgraphs/products/schema.graphql') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Check products subgraph schema
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+        run: |
+          rover subgraph check ${{ vars.APOLLO_GRAPH_REF }} \
+            --name products \
+            --schema ./subgraphs/products/schema.graphql
+        # If proposals check severity = ERROR in Studio settings,
+        # this step fails when changes aren't in an approved Proposal.
+
+  schema-check-orders:
+    name: "Check — orders subgraph"
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.pull_request.changed_files, 'subgraphs/orders/schema.graphql') ||
+      github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rover
+        run: |
+          curl -sSL https://rover.apollo.dev/nix/latest | sh
+          echo "$HOME/.rover/bin" >> $GITHUB_PATH
+
+      - name: Check orders subgraph schema
+        env:
+          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+        run: |
+          rover subgraph check ${{ vars.APOLLO_GRAPH_REF }} \
+            --name orders \
+            --schema ./subgraphs/orders/schema.graphql
+        # This is the DEMO MOMENT:
+        # Before the Proposal is Approved → check shows:
+        #   ❌ Proposals: 1 change not included in an approved proposal
+        #
+        # After the Proposal is Approved → check shows:
+        #   ✅ Proposals: All changes are included in approved proposals
