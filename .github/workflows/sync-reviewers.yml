@@ -17,7 +17,6 @@ on:
     paths:
       - "subgraphs/products/schema.graphql"
       - "subgraphs/orders/schema.graphql"
-      - ".github/contact-reviewer-map.json"
   workflow_dispatch:
 
 jobs:
@@ -31,12 +30,9 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install dependencies
-        run: npm ci --prefix .github/scripts
-
       - name: Sync default reviewers
         env:
-          APOLLO_KEY: ${{ secrets.APOLLO_KEY }}
+          APOLLO_KEY: ${{ secrets.APOLLO_PERSONAL_KEY }}
           APOLLO_GRAPH_ID: ${{ vars.APOLLO_GRAPH_ID }}
         run: |
           node .github/scripts/sync-proposal-reviewers.js
