@@ -148,13 +148,16 @@ console.log(`\nUpdating default reviewers for graph: ${APOLLO_GRAPH_ID}`);
 console.log(`  Setting ${reviewerUserIds.length} default reviewer(s)...`);
 
 const updateData = await gql(`
-  mutation UpdateProposalDefaultReviewers($graphId: ID!, $reviewerUserIds: [ID!]!) {
+  mutation SetProposalDefaultReviewers($graphId: ID!, $reviewerUserIds: [ID!]!) {
     graph(id: $graphId) {
-      updateProposalLifecycleSubscriptions(input: {
-        defaultReviewerUserIds: $reviewerUserIds
+      setProposalDefaultReviewers(input: {
+        reviewerUserIds: $reviewerUserIds
       }) {
-        ... on GraphVariant {
-          id
+        ... on SetProposalDefaultReviewersResult {
+          defaultReviewers {
+            id
+            email
+          }
         }
         ... on PermissionError {
           message
