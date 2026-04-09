@@ -3,7 +3,7 @@ extend schema
   @contact(
     name: "Commerce Team"
     url: "https://yourorg.slack.com/archives/C_COMMERCE"
-    email: "myOrderTeam@google.com"
+    email: "ganesharumugam21@gmail.com"
     description: "Owns order lifecycle, fulfillment, and delivery data. Ping [#commerce-oncall](https://yourorg.slack.com/archives/C_COMMERCE_ONCALL) for urgent issues."
   )
 

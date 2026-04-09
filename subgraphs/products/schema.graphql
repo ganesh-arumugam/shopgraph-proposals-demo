@@ -3,7 +3,7 @@ extend schema
   @contact(
     name: "Catalog Team"
     url: "https://yourorg.slack.com/archives/C_CATALOG"
-    email: "myTeam@google.com"
+    email: "ganesharumugam21@gmail.com"
     description: "Owns all product and variant data. Ping [#catalog-oncall](https://yourorg.slack.com/archives/C_CATALOG_ONCALL) for urgent issues."
   )
 
