@@ -110,7 +110,7 @@ const orgData = await gql(`
     graph(id: $graphId) {
       id
       account {
-        members {
+        memberships {
           user {
             id
             email
@@ -121,7 +121,7 @@ const orgData = await gql(`
   }
 `, { graphId: APOLLO_GRAPH_ID });
 
-const members = orgData?.graph?.account?.members ?? [];
+const members = orgData?.graph?.account?.memberships ?? [];
 const emailToUserId = new Map(
   members.map((m) => [m.user.email, m.user.id])
 );
