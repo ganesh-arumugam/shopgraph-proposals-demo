@@ -1,0 +1,146 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+{
+  query: Query
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+scalar join__FieldSet
+
+enum join__Graph {
+  ORDERS @join__graph(name: "orders", url: "http://localhost:4001/orders/graphql")
+  PRODUCTS @join__graph(name: "products", url: "http://localhost:4001/products/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+"""A customer purchase. Contains the buyer and all purchased variants."""
+type Order
+  @join__type(graph: ORDERS, key: "id")
+{
+  """Unique order identifier"""
+  id: ID!
+
+  """The customer who placed this order"""
+  buyerId: ID!
+
+  """All variants (products) included in this order"""
+  items: [OrderItem!]!
+
+  """Current fulfilment status of the order"""
+  status: OrderStatus!
+
+  """ISO 8601 date-time when the order was placed"""
+  placedAt: String!
+}
+
+"""A single line-item within an order"""
+type OrderItem
+  @join__type(graph: ORDERS)
+{
+  variant: Variant!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+"""The lifecycle status of an order"""
+enum OrderStatus
+  @join__type(graph: ORDERS)
+{
+  PLACED @join__enumValue(graph: ORDERS)
+  PROCESSING @join__enumValue(graph: ORDERS)
+  SHIPPED @join__enumValue(graph: ORDERS)
+  DELIVERED @join__enumValue(graph: ORDERS)
+  CANCELLED @join__enumValue(graph: ORDERS)
+}
+
+"""
+A product sold in the ShopGraph store. Contains high-level details.
+For purchasable items, see Variant.
+"""
+type Product
+  @join__type(graph: PRODUCTS, key: "id")
+{
+  id: ID!
+  title: String!
+  description: String
+  mediaUrl: String
+  category: String
+
+  """
+  All purchasable variants of this product (different sizes, colors, etc.)
+  """
+  variants: [Variant]
+}
+
+"""Search filters when querying Products"""
+input ProductSearchInput
+  @join__type(graph: PRODUCTS)
+{
+  titleStartsWith: String
+}
+
+type Query
+  @join__type(graph: ORDERS)
+  @join__type(graph: PRODUCTS)
+{
+  """
+  Get a specific order by ID. Use for order detail and confirmation pages.
+  """
+  order(id: ID!): Order @join__field(graph: ORDERS)
+
+  """List all orders for the current session (demo: returns all orders)."""
+  orders: [Order] @join__field(graph: ORDERS)
+
+  """Get all available products. Optionally filter by title prefix."""
+  searchProducts(searchInput: ProductSearchInput! = {}): [Product] @join__field(graph: PRODUCTS)
+
+  """
+  Get a specific product by ID. Use for product detail pages and checkout.
+  """
+  product(id: ID!): Product @join__field(graph: PRODUCTS)
+
+  """Get a specific variant by ID."""
+  variant(id: ID!): Variant @join__field(graph: PRODUCTS)
+}
+
+"""
+A purchasable variant of a Product — a unique combination of size, color, and price.
+Variants are the entities added to carts and orders.
+"""
+type Variant
+  @join__type(graph: ORDERS, key: "id", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "id")
+{
+  id: ID!
+  product: Product @join__field(graph: PRODUCTS)
+  colorway: String @join__field(graph: PRODUCTS)
+  price: Float! @join__field(graph: PRODUCTS)
+  size: String @join__field(graph: PRODUCTS)
+}

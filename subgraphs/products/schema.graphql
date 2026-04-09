@@ -1,8 +1,9 @@
 extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@tag"])
   @contact(
     name: "Catalog Team"
     url: "https://yourorg.slack.com/archives/C_CATALOG"
+    email: "myTeam@google.com"
     description: "Owns all product and variant data. Ping [#catalog-oncall](https://yourorg.slack.com/archives/C_CATALOG_ONCALL) for urgent issues."
   )
 
@@ -12,6 +13,8 @@ directive @contact(
   name: String!
   "URL where the subgraph owner can be reached"
   url: String
+  "Email address for the subgraph owner team"
+  email: String
   "Other relevant notes; supports markdown links"
   description: String
 ) on SCHEMA
@@ -21,50 +24,60 @@ type Query {
   Get all available products. Optionally filter by title prefix.
   """
   searchProducts(searchInput: ProductSearchInput! = {}): [Product]
+    @tag(name: "public")
 
   """
   Get a specific product by ID. Use for product detail pages and checkout.
   """
-  product(id: ID!): Product
+  product(id: ID!): Product @tag(name: "public")
 
   """
   Get a specific variant by ID.
   """
-  variant(id: ID!): Variant
+  variant(id: ID!): Variant @tag(name: "internal")
 }
 
 """
 Search filters when querying Products
 """
 input ProductSearchInput {
-  titleStartsWith: String
+  titleStartsWith: String @tag(name: "public")
 }
 
 """
 A product sold in the ShopGraph store. Contains high-level details.
 For purchasable items, see Variant.
 """
-type Product @key(fields: "id") {
-  id: ID!
-  title: String!
-  description: String
-  mediaUrl: String
-  category: String
+type Product @key(fields: "id") @tag(name: "public") {
+  id: ID! @tag(name: "public")
+  title: String! @tag(name: "public")
+  description: String @tag(name: "public")
+  mediaUrl: String @tag(name: "public")
+
+  """
+  Internal categorization — used by merchandising and ops, not exposed to storefront.
+  """
+  category: String @tag(name: "internal")
 
   """
   All purchasable variants of this product (different sizes, colors, etc.)
   """
-  variants: [Variant]
+  variants: [Variant] @tag(name: "public")
 }
 
 """
 A purchasable variant of a Product — a unique combination of size, color, and price.
 Variants are the entities added to carts and orders.
 """
-type Variant @key(fields: "id") {
-  id: ID!
-  product: Product
-  colorway: String
-  price: Float!
-  size: String
+type Variant @key(fields: "id") @tag(name: "public") {
+  id: ID! @tag(name: "public")
+
+  """
+  Back-reference to parent product — internal use only (avoid N+1 on storefront).
+  """
+  product: Product @tag(name: "internal")
+
+  colorway: String @tag(name: "public")
+  price: Float! @tag(name: "public")
+  size: String @tag(name: "public")
 }
