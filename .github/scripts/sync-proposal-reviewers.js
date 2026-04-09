@@ -2,13 +2,13 @@
 /**
  * sync-proposal-reviewers.js
  *
- * Reads @contact directives from subgraph SDL files, maps team names to
- * GraphOS org member user IDs (via contact-reviewer-map.json), then calls
- * the GraphOS Platform API to set those members as default reviewers on
- * the graph's Proposal configuration.
+ * Reads @contact directives from subgraph SDL files and extracts the email
+ * field directly from the directive. Those emails are resolved to GraphOS
+ * user IDs and set as default reviewers on the graph's Proposal configuration.
  *
  * This makes the schema the source of truth for proposal governance:
- *   @contact(name: "Commerce Team") → Commerce Team members auto-added as reviewers
+ *   @contact(name: "Commerce Team", email: "team@example.com")
+ *   → team@example.com auto-added as default reviewer
  *
  * Usage:
  *   APOLLO_KEY=<key> APOLLO_GRAPH_ID=<id> node sync-proposal-reviewers.js
@@ -16,9 +16,6 @@
  * Required env vars:
  *   APOLLO_KEY      — a Personal API key (service keys cannot list org members)
  *   APOLLO_GRAPH_ID — the GraphOS graph ID (not the graph ref)
- *
- * Required file:
- *   .github/contact-reviewer-map.json — maps @contact.name → array of user emails
  */
 
 import { readFileSync } from "fs";
@@ -47,63 +44,44 @@ const SUBGRAPH_SCHEMAS = [
 ];
 
 /**
- * Extracts the @contact name from a SDL string.
- * Matches: @contact( ... name: "Team Name" ... )
+ * Extracts the email field from a @contact directive in an SDL string.
+ * Matches: @contact( ... email: "team@example.com" ... )
+ */
+function extractContactEmail(sdl) {
+  const match = sdl.match(/@contact\s*\([^)]*email:\s*"([^"]+)"/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extracts the name field from a @contact directive in an SDL string.
+ * Used for logging only.
  */
 function extractContactName(sdl) {
   const match = sdl.match(/@contact\s*\([^)]*name:\s*"([^"]+)"/);
   return match ? match[1] : null;
 }
 
-const contactNames = new Set();
+const reviewerEmails = new Set();
 for (const schemaPath of SUBGRAPH_SCHEMAS) {
   const sdl = readFileSync(schemaPath, "utf8");
   const name = extractContactName(sdl);
-  if (name) {
-    console.log(`  Found @contact: "${name}" in ${schemaPath.split("/").slice(-2).join("/")}`);
-    contactNames.add(name);
-  } else {
-    console.warn(`  WARNING: No @contact found in ${schemaPath.split("/").slice(-2).join("/")}`);
-  }
-}
+  const email = extractContactEmail(sdl);
+  const label = schemaPath.split("/").slice(-2).join("/");
 
-if (contactNames.size === 0) {
-  console.log("No @contact directives found. Nothing to sync.");
-  process.exit(0);
-}
-
-// ─── Step 2: Load contact → reviewer email mapping ─────────────────────────
-
-const mapPath = resolve(__dirname, "../contact-reviewer-map.json");
-let contactMap;
-try {
-  contactMap = JSON.parse(readFileSync(mapPath, "utf8"));
-} catch (e) {
-  console.error(`ERROR: Could not read contact-reviewer-map.json at ${mapPath}`);
-  console.error("Create the file with the format shown in .github/contact-reviewer-map.example.json");
-  process.exit(1);
-}
-
-// Collect all reviewer emails from matched contact names
-const reviewerEmails = new Set();
-for (const name of contactNames) {
-  const emails = contactMap[name];
-  if (!emails || emails.length === 0) {
-    console.warn(`  WARNING: No reviewer mapping found for contact "${name}". Add it to contact-reviewer-map.json.`);
-    continue;
-  }
-  for (const email of emails) {
+  if (email) {
+    console.log(`  Found @contact email in ${label}: "${name}" → ${email}`);
     reviewerEmails.add(email);
-    console.log(`  Mapped "${name}" → ${email}`);
+  } else {
+    console.warn(`  WARNING: No email field in @contact in ${label}. Add email: "..." to the @contact directive.`);
   }
 }
 
 if (reviewerEmails.size === 0) {
-  console.log("No reviewers to sync after mapping. Check contact-reviewer-map.json.");
+  console.log("No @contact emails found. Nothing to sync.");
   process.exit(0);
 }
 
-// ─── Step 3: Resolve emails → GraphOS user IDs via Platform API ────────────
+// ─── Step 2: Resolve emails → GraphOS user IDs via Platform API ────────────
 
 async function gql(query, variables = {}) {
   const res = await fetch(PLATFORM_API, {
@@ -164,7 +142,7 @@ if (reviewerUserIds.length === 0) {
   process.exit(1);
 }
 
-// ─── Step 4: Update default reviewers via Platform API ─────────────────────
+// ─── Step 3: Update default reviewers via Platform API ─────────────────────
 
 console.log(`\nUpdating default reviewers for graph: ${APOLLO_GRAPH_ID}`);
 console.log(`  Setting ${reviewerUserIds.length} default reviewer(s)...`);
