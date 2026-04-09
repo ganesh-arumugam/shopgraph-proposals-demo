@@ -1,0 +1,10 @@
+# CODEOWNERS — maps subgraph ownership to GitHub reviewers.
+# These mirror the @contact directives in each subgraph's schema.graphql.
+# Any PR touching a subgraph schema will automatically request review
+# from the corresponding team.
+
+# Catalog Team owns the products subgraph
+subgraphs/products/ @ganesh-arumugam
+
+# Commerce Team owns the orders subgraph
+subgraphs/orders/ @ganesh-arumugam

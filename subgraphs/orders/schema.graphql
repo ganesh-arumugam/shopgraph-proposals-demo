@@ -60,17 +60,11 @@ type Order @key(fields: "id") @tag(name: "public") {
   """
   placedAt: String! @tag(name: "public")
 
-  # ─── PROPOSAL TARGET ────────────────────────────────────────────────────────
-  # The field below will be ADDED via a Schema Proposal in the live demo.
-  # DO NOT add estimatedDelivery here — it is intentionally absent.
-  # After the proposal is Approved and this branch passes CI, it will be added:
-  #
-  # """
-  # Estimated delivery date for this order (ISO 8601).
-  # Added via Schema Proposal: "Add estimatedDelivery to Order"
-  # """
-  # estimatedDelivery: String @tag(name: "public")
-  # ────────────────────────────────────────────────────────────────────────────
+  """
+  Estimated delivery date for this order (ISO 8601).
+  Added via Schema Proposal: "Add estimatedDelivery to Order"
+  """
+  estimatedDelivery: String @tag(name: "public")
 }
 
 """
