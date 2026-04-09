@@ -153,11 +153,8 @@ const updateData = await gql(`
       setProposalDefaultReviewers(input: {
         reviewerUserIds: $reviewerUserIds
       }) {
-        ... on SetProposalDefaultReviewersResult {
-          defaultReviewers {
-            id
-            email
-          }
+        ... on Service {
+          id
         }
         ... on PermissionError {
           message
