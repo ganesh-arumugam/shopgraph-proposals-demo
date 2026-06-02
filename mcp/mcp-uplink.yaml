@@ -1,0 +1,45 @@
+# MCP Server Config: source: uplink
+#
+# Tools come from the published Persisted Query safelist, delivered via the
+# same Apollo Uplink channel the Router uses. The tool set is locked to the
+# PQ manifest — no Studio UI needed once published.
+#
+# PQ List: "ShopGraph MCP Safelist" (id: 53c1167d-fd74-4870-bc7d-7ff3b76d7e60)
+# Linked to: GA-Proposal@current
+# Published: 4 operations (revision 1)
+#
+# Hot-reloads when a new PQ manifest is published — no MCP server restart.
+# Pairs with Router safelisting to block arbitrary queries from AI agents.
+#
+# APOLLO_GRAPH_REF=GA-Proposal-72nrae@current
+# APOLLO_KEY=service:GA-Proposal-72nrae:UJHyt0oFmLzeeowRtCwrBw
+
+endpoint: http://localhost:4000/graphql
+
+operations:
+  source: uplink
+
+overrides:
+  descriptions:
+    GetAllProducts: |
+      Returns the full ShopGraph product catalog. No arguments required.
+      Each product includes id (format "product:N"), title, description,
+      category (Footwear | Outerwear | Accessories | Gear), and variants
+      (id, colorway, size, price). Use when browsing all products or
+      discovering the catalog. Prefer GetProductById when you have an ID.
+    GetProductById: |
+      Returns full details for one product by ID, including all variants
+      with colorway, size, and price.
+      Required: productId (string, e.g. "product:1" – "product:5").
+      If you lack an ID, call GetAllProducts first to find it.
+    GetAllOrders: |
+      Returns all orders: id (format "order:N"), buyerId, status
+      (PLACED | PROCESSING | SHIPPED | DELIVERED | CANCELLED), placedAt,
+      and line items (quantity, unitPrice, variant id). Does NOT include
+      estimatedDelivery — use GetOrderWithDelivery for that.
+    GetOrderWithDelivery: |
+      Returns one order by ID including estimatedDelivery date.
+      Required: orderId (string, e.g. "order:1" – "order:4").
+      If you lack an order ID, call GetAllOrders first.
+      Use when the user asks when an order will arrive.
+  mutation_mode: explicit

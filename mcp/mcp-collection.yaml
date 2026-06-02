@@ -1,0 +1,49 @@
+# MCP Server Config: source: collection
+#
+# Tools come from a Studio-managed operation collection.
+# Operations saved in Explorer appear as MCP tools within ~60 seconds.
+# No CI pipeline required — curate tools directly in Studio.
+#
+# Demo arc: show this first. Save an operation in Explorer → watch it appear live.
+#
+# APOLLO_GRAPH_REF=GA-Proposal-72nrae@current
+# APOLLO_KEY=service:GA-Proposal-72nrae:UJHyt0oFmLzeeowRtCwrBw
+
+endpoint: http://localhost:4000/graphql
+
+operations:
+  # Option A: Default MCP Tools collection (built-in for every variant)
+  # Zero additional config — just save operations to the "Default MCP Tools"
+  # collection in Studio Explorer and they appear automatically.
+  source: collection
+  id: 5db2e0ac-2f6d-453c-b0e0-c11c66ffba3c  # "Default MCP Tools" — GA-Proposal-72nrae@current
+
+  # Option B (swap in to demo scoping): Catalog Browse Tools — products only,
+  # no order or customer data. Swap the id below to show how restricting the
+  # collection ID changes the agent's tool surface instantly.
+  # id: 212a2b1a-4b2a-47fe-8991-ae5204057e20  # "Catalog Browse Tools" — GA-Proposal-72nrae@current
+
+overrides:
+  descriptions:
+    GetAllProducts: |
+      Returns the full ShopGraph product catalog. No arguments required.
+      Each product includes id (format "product:N"), title, description,
+      category (Footwear | Outerwear | Accessories | Gear), and variants
+      (id, colorway, size, price). Use when browsing all products or
+      discovering the catalog. Prefer GetProductById when you have an ID.
+    GetProductById: |
+      Returns full details for one product by ID, including all variants
+      with colorway, size, and price.
+      Required: productId (string, e.g. "product:1" - "product:5").
+      If you lack an ID, call GetAllProducts first to find it.
+    GetAllOrders: |
+      Returns all orders: id (format "order:N"), buyerId, status
+      (PLACED | PROCESSING | SHIPPED | DELIVERED | CANCELLED), placedAt,
+      and line items (quantity, unitPrice, variant id). Does NOT include
+      estimatedDelivery — use GetOrderWithDelivery for that.
+    GetOrderWithDelivery: |
+      Returns one order by ID including estimatedDelivery date.
+      Required: orderId (string, e.g. "order:1" - "order:4").
+      If you lack an order ID, call GetAllOrders first.
+      Use when the user asks when an order will arrive.
+  mutation_mode: explicit

@@ -1,0 +1,151 @@
+# Apollo MCP Server — ShopGraph Demo
+#
+# Run: apollo-mcp-server ./mcp/config.yaml
+# MCP endpoint: http://127.0.0.1:5000/mcp
+#
+# Required env vars:
+#   APOLLO_KEY=service:GA-Proposal-72nrae:UJHyt0oFmLzeeowRtCwrBw
+#   APOLLO_GRAPH_REF=GA-Proposal-72nrae@current
+
+# ── Transport ────────────────────────────────────────────────────────────────
+# streamable_http lets multiple clients (Claude Desktop, Claude Code, Cursor)
+# connect simultaneously. Use stdio only if the client launches the process.
+transport:
+  type: streamable_http
+  address: 127.0.0.1
+  port: 5000
+
+# ── GraphOS ──────────────────────────────────────────────────────────────────
+# Pulls the schema from GraphOS Uplink and authenticates all Studio API calls
+# (collection sync, PQ safelist fetch). Reads from env vars at startup.
+graphos:
+  apollo_key: ${env.APOLLO_KEY}
+  apollo_graph_ref: ${env.APOLLO_GRAPH_REF}
+
+# ── GraphQL endpoint ─────────────────────────────────────────────────────────
+# Where the MCP Server sends operations at runtime.
+endpoint: http://localhost:4000/graphql
+
+# ── Operation source (swap to show each tool-creation mode) ─────────────────
+#
+# MODE 1 — Studio collection (default for this demo)
+#   Tools come from Explorer-saved operations. Live-syncs every ~60s.
+#   Swap the `id` to show scoping (Default MCP Tools → Catalog Browse Tools).
+#
+operations:
+  source: collection
+  id: 5db2e0ac-2f6d-453c-b0e0-c11c66ffba3c  # "Default MCP Tools" (all 4 ops)
+  # id: 212a2b1a-4b2a-47fe-8991-ae5204057e20  # "Catalog Browse Tools" (2 ops — products only)
+
+# MODE 2 — Apollo Uplink / PQ safelist (flip source to show CI-driven approach)
+#   Uncomment to pull tools from the published PQ manifest via Uplink.
+#   Hot-reloads on every `rover persisted-queries publish`. No UI required.
+#   Pair with router-pq-safelist.yaml to block ad-hoc queries at the Router.
+#
+# operations:
+#   source: uplink
+
+# MODE 3 — Local operation files (pure local / offline demo)
+#   Uses the .graphql files in operations/. No Studio account needed.
+#
+# operations:
+#   source: local
+#   paths:
+#     - ../operations/
+
+# ── Introspection tools ──────────────────────────────────────────────────────
+# Enable for demos — lets you show introspect/search/validate/execute live.
+# Disable (or remove block) for production deployments.
+introspection:
+  introspect:
+    enabled: true
+    minify: true   # compact token output for LLM efficiency
+  search:
+    enabled: true
+    minify: true
+  validate:
+    enabled: true
+  execute:
+    enabled: true
+
+# ── Tool overrides ───────────────────────────────────────────────────────────
+# Tool descriptions are the primary signal the LLM uses for tool selection.
+# Write them like a senior engineer briefing a new teammate: state the purpose,
+# describe inputs and their format, describe returned data, and disambiguate
+# from similar tools. Vague descriptions cause wrong tool calls.
+overrides:
+  descriptions:
+    GetAllProducts: |
+      Returns the full ShopGraph product catalog. No arguments required.
+
+      Each product includes: id (format "product:N"), title, description,
+      category (one of: Footwear, Outerwear, Accessories, Gear), and a list
+      of variants. Each variant includes: id, colorway, size, and price.
+
+      Use this tool when the user wants to:
+      - Browse or list all available products
+      - Find products in a specific category
+      - Discover what's in the catalog before narrowing down
+
+      Prefer GetProductById when you already have a product ID and need full
+      details for a single item. Do not call this tool repeatedly — cache the
+      result and filter client-side when looking for a specific category.
+
+    GetProductById: |
+      Returns full details for a single product by its ID, including all
+      purchasable variants with colorway, size, and price.
+
+      Required argument:
+        productId (ID) — the product's ID string, e.g. "product:1", "product:2".
+        Valid range for this demo: "product:1" through "product:5".
+
+      If you do not have a product ID, call GetAllProducts first to retrieve
+      the catalog and extract the relevant ID.
+
+      Use this tool when the user:
+      - Asks about a specific product by name or ID
+      - Wants to see all available sizes, colors, or prices for one item
+      - Is comparing variants before a purchase decision
+
+    GetAllOrders: |
+      Returns all orders in the system. No arguments required.
+
+      Each order includes: id (format "order:N"), buyerId, status, placedAt
+      (ISO 8601 timestamp), and line items. Each line item includes quantity,
+      unitPrice, and the variant id.
+
+      Order status values: PLACED | PROCESSING | SHIPPED | DELIVERED | CANCELLED
+
+      Important: this tool does NOT return estimatedDelivery. To get the
+      delivery date for a specific order, use GetOrderWithDelivery instead.
+
+      Use this tool when the user wants to:
+      - See all orders or order history
+      - Check statuses across multiple orders
+      - Find an order ID before looking up delivery details
+
+    GetOrderWithDelivery: |
+      Returns a single order by ID, including its estimatedDelivery date.
+
+      Required argument:
+        orderId (ID) — the order's ID string, e.g. "order:1", "order:2".
+        Valid range for this demo: "order:1" through "order:4".
+
+      If you do not have an order ID, call GetAllOrders first to list all
+      orders and identify the relevant one.
+
+      Fields returned: id, buyerId, status, placedAt, estimatedDelivery,
+      and line items (quantity, unitPrice).
+
+      Use this tool when the user:
+      - Asks when a specific order will arrive
+      - Wants the delivery date or full status for one order
+      - Is following up on a known order ID
+
+  # explicit = LLM must confirm before any mutation executes.
+  # Change to "all" only in fully trusted, local-only environments.
+  mutation_mode: explicit
+
+# ── Health check ─────────────────────────────────────────────────────────────
+health_check:
+  enabled: true

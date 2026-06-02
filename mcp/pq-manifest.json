@@ -1,0 +1,30 @@
+{
+  "format": "apollo-persisted-query-manifest",
+  "version": 1,
+  "operations": [
+    {
+      "id": "00be76dabbec2772b800dce6f47b0e92db43ee53c64ddf8e698925953a4a3b05",
+      "name": "GetAllProducts",
+      "type": "query",
+      "body": "query GetAllProducts {\n  searchProducts {\n    id\n    title\n    description\n    category\n    variants {\n      id\n      colorway\n      price\n      size\n    }\n  }\n}"
+    },
+    {
+      "id": "72027ceb0df1cf56250e31a57f25fdeb5f6a19431c7a355e7987e6177c01d84f",
+      "name": "GetProductById",
+      "type": "query",
+      "body": "query GetProductById($productId: ID!) {\n  product(id: $productId) {\n    id\n    title\n    description\n    category\n    variants {\n      id\n      colorway\n      price\n      size\n    }\n  }\n}"
+    },
+    {
+      "id": "c11958485239bc04034317b4be4beff029b6e53bbc3cb55224d98babd9505eb8",
+      "name": "GetAllOrders",
+      "type": "query",
+      "body": "query GetAllOrders {\n  orders {\n    id\n    buyerId\n    status\n    placedAt\n    items {\n      quantity\n      unitPrice\n      variant {\n        id\n      }\n    }\n  }\n}"
+    },
+    {
+      "id": "4b91120cafcaa87745ccec4552ab2abaa60c5239cf9eff129a8d463887c43460",
+      "name": "GetOrderWithDelivery",
+      "type": "query",
+      "body": "query GetOrderWithDelivery($orderId: ID!) {\n  order(id: $orderId) {\n    id\n    buyerId\n    status\n    placedAt\n    estimatedDelivery\n    items {\n      quantity\n      unitPrice\n    }\n  }\n}"
+    }
+  ]
+}

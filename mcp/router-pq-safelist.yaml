@@ -1,0 +1,14 @@
+# Router config snippet: enable PQ safelisting to pair with source: uplink
+#
+# Add this block to router/router-config.yaml to enforce that only
+# pre-registered operations are allowed through the Router.
+# Any arbitrary query from an AI agent (or anyone else) gets rejected.
+#
+# This is the production pattern: MCP Server (source: uplink) + Router safelist
+# = schema-level scoping + operation-level enforcement in one architecture.
+
+persisted_queries:
+  enabled: true
+  safelist:
+    enabled: true
+    require_id: true   # Rejects any operation not in the PQ manifest

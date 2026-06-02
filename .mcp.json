@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "shopgraph": {
+      "command": "apollo-mcp-server",
+      "args": ["./mcp/config.yaml"],
+      "env": {
+        "APOLLO_KEY": "service:GA-Proposal-72nrae:UJHyt0oFmLzeeowRtCwrBw",
+        "APOLLO_GRAPH_REF": "GA-Proposal-72nrae@current"
+      }
+    }
+  }
+}
