@@ -41,7 +41,26 @@ export const startSubgraphs = async (port = 4001) => {
       cors(),
       bodyParser.json(),
       expressMiddleware(server, {
-        context: async ({ req }) => ({ headers: req.headers }),
+        context: async ({ req }) => {
+          // ─── Trace Context Logging ───────────────────────
+          const traceparent = req.headers["traceparent"];
+          const tracestate = req.headers["tracestate"];
+          console.log(
+            `\n📡 [${subgraph.name}] Incoming trace headers:` +
+            `\n   traceparent: ${traceparent || "(not present)"}` +
+            `\n   tracestate:  ${tracestate || "(not present)"}`
+          );
+          if (traceparent) {
+            const [version, traceId, parentId, flags] = traceparent.split("-");
+            console.log(
+              `   ├─ trace-id:  ${traceId}` +
+              `\n   ├─ parent-id: ${parentId}` +
+              `\n   └─ flags:     ${flags} (${flags === "01" ? "sampled" : "not sampled"})`
+            );
+          }
+          // ─────────────────────────────────────────────────
+          return { headers: req.headers };
+        },
       })
     );
 

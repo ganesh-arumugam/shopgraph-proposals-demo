@@ -1,4 +1,7 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/apollographql/router/main/apollo-router/src/configuration/testdata/schema/v2.7.json
+# yaml-language-server: $schema=./router.schema.json
+# ^ Config schema emitted by THIS router binary (v2.15.0) via `./router config schema`.
+#   Using the binary's own schema avoids version drift in editor validation.
+#   Regenerate after a router upgrade: cd router && ./router config schema > router.schema.json
 
 supergraph:
   listen: 127.0.0.1:4000
@@ -11,11 +14,14 @@ headers:
       - propagate:
           matching: .*
 
-# Allow local Explorer and client dev server to query the router
+# Allow local Explorer and client dev server to query the router.
+# Router v2 uses a policy-based structure (v1 used a flat `origins` array)
+# each policy can set its own methods/headers/credentials for finer control.
 cors:
-  origins:
-    - http://localhost:3000
-    - https://studio.apollographql.com
+  policies:
+    - origins:
+        - http://localhost:3000
+        - https://studio.apollographql.com
 
 # Enable sandbox in development
 sandbox:
@@ -27,3 +33,84 @@ homepage:
 
 include_subgraph_errors:
   all: true
+
+# ─── Telemetry: Trace Propagation & Logging ─────────────
+telemetry:
+  exporters:
+    tracing:
+      common:
+        # Name this service carries in every span — how it shows up in your tracing backend.
+        service_name: apollo-router-local
+        # always_on = trace every request. Use a fraction (e.g. 0.1) in production
+        # to sample 10% of traffic and control cost/volume.
+        sampler: always_on
+        # false = the router makes its own sampling decision regardless of the caller's.
+        # Set true in production to honor the upstream caller's sample flag instead.
+        parent_based_sampler: false
+      propagation:
+        # Read/forward the W3C `traceparent` header so one trace ID spans
+        # client → router → subgraphs. This is what stitches the hops together.
+        trace_context: true
+      otlp:
+        # Export spans to an OpenTelemetry collector / Jaeger.
+        # Points at the LOCAL Jaeger in observability/docker-compose.yml.
+        # NOTE: host 4319 → Jaeger container 4317 (host 4317/4318 are used by
+        # another project's collector, so we remap). See observability/DEMO.md.
+        enabled: true
+        endpoint: http://localhost:4319
+        protocol: grpc
+
+    # Metrics for Prometheus to scrape. The router serves /metrics on this
+    # host port; the Prometheus container reaches it via host.docker.internal.
+    metrics:
+      prometheus:
+        enabled: true
+        listen: 127.0.0.1:9091   # host port — keep distinct from Prometheus UI (:9090)
+        path: /metrics
+
+    logging:
+      stdout:
+        enabled: true
+        format:
+          # Structured JSON logs so trace fields are machine-parseable (jq, log pipelines).
+          json:
+            display_current_span: true # include the active span on each log line
+            display_span_list: true # include the full span chain (router→supergraph→subgraph)
+            display_trace_id: open_telemetry # stamp every line with the trace ID — the key to correlating hops
+            display_span_id: true
+            # Surface these span attributes (defined under instrumentation.spans) on log lines.
+            span_attributes:
+              - debug.incoming.traceparent
+              - debug.incoming.tracestate
+              - debug.router.trace_id
+
+  instrumentation:
+    # spans: attach custom attributes to the router span. On their own these only
+    # appear in traces / on log lines once an event (below) is emitted in the span.
+    spans:
+      mode: spec_compliant # OpenTelemetry-standard span naming/attributes
+      router:
+        attributes:
+          # Capture the raw inbound trace headers so you can SEE what the client sent
+          # (or didn't) — proves whether the router originated or continued the trace.
+          "debug.incoming.traceparent":
+            request_header: "traceparent"
+          "debug.incoming.tracestate":
+            request_header: "tracestate"
+          # The trace ID the router actually used for this request.
+          "debug.router.trace_id":
+            trace_id: open_telemetry
+
+    # Emit a log line per request at the router stage. Without this, the router
+    # logs nothing per-request and the span attributes above never print. The
+    # emitted event inherits trace_id (display_trace_id) and the debug.incoming.*
+    # span attributes (display_span_list + span_attributes) from logging.stdout.
+    events:
+      router:
+        request: info
+        response: info
+      # Outbound hop: log the trace context the router sends to each subgraph,
+      # complementing the subgraph's own incoming-header logging.
+      subgraph:
+        request: info
+        response: info

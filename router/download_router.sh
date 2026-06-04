@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-ROUTER_VERSION="v1.57.1"
+ROUTER_VERSION="v2.15.0"
 DEST="./router"
 
 if [ -f "$DEST" ]; then
@@ -37,5 +37,15 @@ tar -xzf router.tar.gz
 mv dist/router "$DEST"
 rm -rf dist router.tar.gz
 chmod +x "$DEST"
+
+# On macOS, a freshly downloaded/unsigned Mach-O is often SIGKILLed by Gatekeeper
+# (router exits 137 with no output). Strip quarantine + ad-hoc sign to avoid this.
+if [ "$OS" = "darwin" ]; then
+  xattr -c "$DEST" 2>/dev/null || true
+  codesign --force --sign - "$DEST" 2>/dev/null || true
+  if ! "$DEST" --version >/dev/null 2>&1; then
+    echo "WARNING: router binary still won't execute. Try: codesign --force --sign - $DEST"
+  fi
+fi
 
 echo "✓ Router downloaded to $DEST"
