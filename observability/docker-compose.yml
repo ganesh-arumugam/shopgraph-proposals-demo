@@ -1,0 +1,40 @@
+# Local observability stack for the ShopGraph demo.
+#
+# The Apollo Router runs ON THE HOST (127.0.0.1:4000), NOT in Docker.
+#   - Router → Jaeger:      router exports OTLP to localhost:4319 (host)
+#   - Prometheus → Router:  container scrapes host.docker.internal:9091
+#
+# Host ports 4317/4318 are used by an unrelated project's collector, so the
+# Jaeger OTLP ports are remapped into the 43xx range.
+#
+#   cd observability && docker compose up -d
+#   docker compose down
+#
+name: shopgraph-observability
+
+services:
+  # ── Traces: Jaeger all-in-one (OTLP in, waterfall UI out) ──────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    container_name: shopgraph-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"   # enable OTLP receiver (gRPC 4317 / HTTP 4318 in-container)
+    ports:
+      - "16686:16686"   # Jaeger UI            → http://localhost:16686
+      - "4319:4317"     # OTLP gRPC  host 4319 → container 4317  (router targets this)
+      - "4320:4318"     # OTLP HTTP  host 4320 → container 4318  (alt)
+    restart: unless-stopped
+
+  # ── Metrics: Prometheus, scraping the HOST router ──────────────────────
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: shopgraph-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"     # Prometheus UI        → http://localhost:9090
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # ensure host is reachable on Linux/Docker too
+    restart: unless-stopped

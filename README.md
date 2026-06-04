@@ -41,6 +41,18 @@ npm run router:start
 
 Then open [GraphOS Studio](https://studio.apollographql.com) to your graph and start the demo.
 
+## Observability demo
+
+A separate, self-contained demo shows how **logs + traces + metrics correlate via a
+single `trace_id`** (Jaeger + Prometheus, locally via Docker). One-liner:
+
+```bash
+npm run obs:up                    # Jaeger + Prometheus + subgraphs + router
+./observability/demo.sh latency   # arm a scenario; prints trace_id + clickable links
+```
+
+Full runbook (2 use cases + talking points): [`observability/DEMO.md`](./observability/DEMO.md)
+
 ## Demo guide
 
 See [`demo-guide/DEMO_GUIDE.md`](./demo-guide/DEMO_GUIDE.md) for the full SE script with talking points, objection handling, and the step-by-step demo flow.

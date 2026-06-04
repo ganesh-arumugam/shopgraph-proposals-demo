@@ -14,7 +14,11 @@
     "router:download": "cd router && bash download_router.sh",
     "router:start": "cd router && bash start_router.sh",
     "publish:schemas": "cd router && bash publish_subgraphs.sh",
-    "dev": "concurrently --names 'subgraphs,router' 'npm run dev:subgraphs' 'npm run router:start'"
+    "dev": "concurrently --names 'subgraphs,router' 'npm run dev:subgraphs' 'npm run router:start'",
+    "obs:up": "bash observability/demo.sh up",
+    "obs:down": "bash observability/demo.sh down",
+    "obs:status": "bash observability/demo.sh status",
+    "demo": "bash observability/demo.sh"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

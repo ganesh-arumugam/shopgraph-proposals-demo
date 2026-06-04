@@ -4,3 +4,6 @@ router/router
 *.tar.gz
 dist/
 .DS_Store
+
+# observability demo runtime (pids/logs)
+observability/.run/
