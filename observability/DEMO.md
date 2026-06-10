@@ -1,240 +1,201 @@
-# ShopGraph Observability Demo — One `trace_id` across Logs + Traces + Metrics
+# ShopGraph Observability Demo
 
-A local, self-contained demo showing how the **three pillars of observability connect
-through a single `trace_id`** that the Apollo Router mints when a client sends no
-`traceparent`.
+One `trace_id` across logs, traces, and metrics, on a local Apollo Router federated
+supergraph (orders + products).
 
-> **The narrative:** *Metrics* tell you **something** is wrong → *Traces* tell you
-> **where** → *Logs* tell you **why**. You never lose the thread, because it's the
-> same `trace_id` end to end.
-
-Verified against **Apollo Router v2.15.0**.
-
----
-
-## Hands-free driver (recommended for live calls)
-
-[`demo.sh`](./demo.sh) automates the whole flow — it starts everything, fires the
-queries, and **prints the `trace_id` + a clickable Jaeger link** for each scenario.
-
-```bash
-./observability/demo.sh up        # backends + subgraphs + router (clean)
-./observability/demo.sh status    # what's running + URLs + scrape health
-./observability/demo.sh query     # one normal query → trace_id + links
-./observability/demo.sh latency   # arm latency, drive traffic → trace_id + PromQL + links
-./observability/demo.sh error     # arm error, trigger it → trace_id + links
-./observability/demo.sh reset     # disarm scenarios (subgraphs back to clean)
-./observability/demo.sh open      # open Jaeger + Prometheus UIs
-./observability/demo.sh down      # stop everything
-```
-
-(Also wired as npm scripts: `npm run obs:up`, `npm run obs:down`, `npm run obs:status`.)
-
-The sections below explain what each step does — useful for narrating the call or
-running it manually.
-
----
+The narrative: metrics tell you something is wrong, traces tell you where, logs tell you
+why, and it is the same `trace_id` end to end. Verified against Apollo Router v2.15.0.
 
 ## Architecture
 
+The router emits all three signals. Traces flow through an OpenTelemetry Collector, which
+decouples the router from the trace backend: swapping or adding a destination (Tempo, an
+APM, a second backend) is a change in the collector, not in the router config.
+
+```text
+  Client ──GraphQL──▶  Apollo Router :4000  ──subgraph fetch──▶  products / orders :4001
+                            │
+                            └──OTLP traces──▶  OTel Collector :4327  ──▶  Jaeger :16686
+
+  Prometheus :9090  ──scrapes /metrics :9091──▶  Apollo Router
+  Grafana :3000     ──reads──▶  Prometheus
+
+  HOST   : Apollo Router, products / orders subgraphs
+  DOCKER : OTel Collector, Jaeger, Prometheus, Grafana
+
+  Traces  : Router ▶ Collector ▶ Jaeger     (the collector decouples the trace backend)
+  Metrics : Prometheus scrapes Router ▶ Grafana visualizes
+  Logs    : Router stdout JSON, trace_id on every line
 ```
-                            ┌─────────────────────────────────────────┐
-   client (Bruno/curl)      │  HOST                                    │
-        │  no traceparent   │   Apollo Router :4000                    │
-        ▼                   │     ├─ stdout JSON logs  (trace_id)      │
-   Router MINTS trace_id ───┼──▶  ├─ OTLP traces  ──▶ localhost:4319   │
-                            │     └─ /metrics      ◀── scraped :9091   │
-                            └───────┬───────────────────┬─────────────┘
-                                    │                    │
-                       ┌────────────▼─────┐   ┌──────────▼──────────┐
-                       │ Jaeger (Docker)  │   │ Prometheus (Docker) │
-                       │  UI :16686       │   │  UI :9090           │
-                       └──────────────────┘   └─────────────────────┘
+
+How the three pillars share one `trace_id`:
+
+```text
+                          Incoming request
+                                 │
+        no traceparent ──────────┤────────── traceparent present
+                 │                                    │
+                 ▼                                    ▼
+       Router MINTS a trace_id             Router CONTINUES the client's trace_id
+                 │                                    │
+                 └──────────────┬─────────────────────┘
+                                ▼
+                          one trace_id
+              ┌─────────────────┼─────────────────┐
+              ▼                 ▼                 ▼
+            LOGS              TRACES            METRICS
+     trace_id on every   router + subgraph   request lifecycle
+     line (display_      spans in Jaeger,    in Prometheus /
+     trace_id)           one trace_id        Grafana
 ```
+
+## Quick start (hands-free driver)
+
+Everything runs through [`demo.sh`](./demo.sh). Make sure Docker is running first.
+
+```bash
+./observability/demo.sh up          # Jaeger + Prometheus + Grafana + subgraphs + router
+./observability/demo.sh status      # what is running, URLs, scrape health
+./observability/demo.sh open        # open the Grafana dashboard + Jaeger
+
+# scenarios (each prints what to look at):
+./observability/demo.sh query       # NO traceparent  -> router MINTS a trace_id
+./observability/demo.sh propagate   # client traceparent -> router CONTINUES it
+./observability/demo.sh load [secs]  # sustained traffic so Grafana panels fill in (default 20s)
+./observability/demo.sh latency      # orders slowdown (~800ms), both subgraphs
+./observability/demo.sh error        # subgraph error, populates the errors panel
+./observability/demo.sh reset        # disarm latency/error, back to clean
+./observability/demo.sh down         # stop everything
+```
+
+The driver starts the router and subgraphs as background processes and writes their logs to
+`observability/.run/router.log` and `observability/.run/subgraphs.log`. That is where the
+`grep` commands below read from. (Also available as `npm run obs:up` / `obs:down` / `obs:status`.)
+
+## Endpoints
 
 | Service | URL | Purpose |
-|---------|-----|---------|
-| Router GraphQL | http://localhost:4000 | the supergraph |
+|---|---|---|
+| Grafana dashboard | http://localhost:3000/d/shopgraph-router | the metrics view to present (use this) |
+| Jaeger | http://localhost:16686 | trace waterfalls |
+| Router GraphQL | http://localhost:4000/ | the supergraph (default path is `/`) |
 | Router metrics | http://localhost:9091/metrics | Prometheus scrape target |
-| **Jaeger UI** | http://localhost:16686 | trace waterfalls (traces pillar) |
-| **Prometheus UI** | http://localhost:9090 | metrics queries (metrics pillar) |
-| Router logs | terminal / `/tmp/shopgraph/router.log` | structured JSON w/ `trace_id` (logs pillar) |
+| Prometheus | http://localhost:9090 | raw PromQL (Grafana is nicer) |
 
-> Host ports **4317/4318 are intentionally avoided** (used by another project's
-> collector). Jaeger's OTLP is remapped: host **4319→**container 4317 (gRPC).
+Grafana opens with no login (anonymous admin, dark theme). The dashboard **ShopGraph Router
+Observability** is auto-provisioned: router p50/p95/p99, request rate by subgraph, p95 by
+subgraph (orders red, products green), GraphQL errors by code, and stat tiles. It refreshes
+every 5s over the last 30 minutes, so a full scenario run stays on screen while you talk.
 
----
+Note: a single `query` or `propagate` is one request, which is invisible on rate-based
+panels. Use `load` or `latency` to make Grafana light up.
 
-## One-time setup
+## The `trace_id` story (logs)
+
+This is the core idea, shown with two one-request commands.
+
+**No inbound traceparent: the router mints the id.**
+```bash
+./observability/demo.sh query
+tail -20 observability/.run/router.log | \
+  jq -rR 'fromjson? | select(.kind=="router.request") | {trace_id, incoming: (.spans[]|select(.name=="router")|."debug.incoming.traceparent")}'
+```
+`incoming` is null, `trace_id` is a fresh router-generated id. The subgraph receives that same
+id (`grep -A4 "Incoming trace headers" observability/.run/subgraphs.log | tail -8`).
+
+**Client sends a traceparent: the router continues it.**
+```bash
+./observability/demo.sh propagate
+```
+The command prints the client's `trace_id` and a Jaeger link. The router log line for that
+request shows `incoming` set to the client's header and `trace_id` equal to the client's
+trace-id. The trace-id is preserved end to end; only the parent span-id is rewritten on the
+subgraph hop. Open the printed Jaeger link to see the trace filed under the client's id.
+
+Say: the `trace_id` is the join key. With no header the router originates it, so cross-request
+tracking works even for un-instrumented callers. With a header it continues the caller's trace.
+
+## Use Case 1: latency investigation
+
+"p95 just spiked. Which subgraph, and why?"
 
 ```bash
-# 1. Observability backends (Jaeger + Prometheus)
-cd observability && docker compose up -d
-
-# 2. Subgraphs (terminal A)  — from repo root
-npm run start:subgraphs
-
-# 3. Router (terminal B)
-npm run router:start
+./observability/demo.sh latency        # arms ~800ms on orders, drives the combined query
+# ... talk for a bit, then:
+./observability/demo.sh reset          # disarm when done
 ```
+The `latency` query hits BOTH subgraphs (`order(id:)` slow, `searchProducts` fast). That is
+deliberate: it makes the per-subgraph contrast visible in Grafana and puts a fast span next
+to the slow one in a single Jaeger trace.
 
-**Pre-call sanity checks** (~30s):
+**Grafana** ( http://localhost:3000/d/shopgraph-router ): the **p95 latency by subgraph** panel
+shows orders (red) climbing to ~0.8s while products (green) stays flat. The **Router latency**
+panel shows p95/p99 rising. Run `./observability/demo.sh load 30` alongside if you want denser
+lines.
+
+**Jaeger** ( http://localhost:16686 ): service `apollo-router-local`, Find Traces, sort by
+Duration, open the slowest. Read the waterfall correctly: a parent span encloses its children,
+so its duration includes them. The whole request took ~800ms, so the ancestors all show ~800ms.
+That is expected. Localize the cause at the leaf spans and compare siblings:
+```
+query / supergraph / execution / parallel : ~806ms   parents enclose the slow child
+fetch / subgraph [orders]                 : ~805ms   the slow hop (the cause)
+fetch / subgraph [products]               : ~2ms     the fast hop, same trace
+```
+Say: every ancestor of the slow span shows ~800ms because it is waiting on it. The cause is the
+deepest span that owns the time with no slow child beneath it, the orders subgraph hop.
+
+**Logs** (confirm by the same id):
 ```bash
-curl -s localhost:9091/metrics | grep -c http_server_request_duration   # >0 after one query
-curl -s "http://localhost:9090/api/v1/targets" | jq '.data.activeTargets[].health'  # "up"
-open http://localhost:16686 http://localhost:9090
+TID=<paste from Jaeger>
+grep "$TID" observability/.run/router.log | jq -c '{kind, trace_id, subgraph: ."subgraph.name"}'
 ```
 
-Metric names are the **OTel-spec** names on v2.15.0 (verified):
-`http_server_request_duration_seconds_*` (overall) and
-`http_client_request_duration_seconds_*` (router→subgraph hop, labelled `subgraph_name`).
+## Use Case 2: error correlation
 
----
+"Errors ticked up. Find the failing request and the failing hop."
 
-## Use Case 1 — Latency investigation (headline)
-
-> *"p95 just spiked. Which subgraph? Why?"*
-
-### Arm the demo
-Restart **subgraphs** with the latency flag (the committed code is clean; this env
-var is the only switch):
 ```bash
-# terminal A — Ctrl-C, then:
-DEMO_SLOW_ORDERS_MS=800 npm run start:subgraphs
+./observability/demo.sh error          # forces the products `product` query to throw
+./observability/demo.sh reset          # disarm when done
 ```
 
-### Trigger (no `traceparent` → router mints the trace_id)
-```bash
-for i in $(seq 1 10); do
-  curl -s http://localhost:4000/ -H 'content-type: application/json' \
-    -d '{"query":"query Slow { order(id:\"order:2\"){ id status placedAt items{ quantity unitPrice } } }"}' >/dev/null
-done
-```
+**Grafana**: the **GraphQL errors by code** panel and the **GraphQL errors (total)** tile light
+up with `INTERNAL_SERVER_ERROR`. This fires even though the HTTP status stays 200 (GraphQL
+errors are 200 plus an `errors` array), so it is a real signal, not a status-code artifact.
 
-### Live script
+**Jaeger**: service `apollo-router-local`, filter Tags `error=true`, open the trace. The
+products subgraph span is flagged with `Catalog lookup failed: downstream inventory timeout`.
+Federation attributes the failure to the owning team (the `@contact` Catalog Team in the schema).
 
-**① Prometheus — "something is slow"** ( http://localhost:9090 )
-```promql
-# overall router p95 (climbs toward 0.8s)
-histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[1m])))
-
-# the money shot — p95 PER SUBGRAPH; orders stands out, products is flat
-histogram_quantile(0.95, sum by (le, subgraph_name) (rate(http_client_request_duration_seconds_bucket[1m])))
-```
-> *Say:* "Metrics flagged the symptom and even point at the `orders` subgraph — but
-> not which request or why. That's the trace's job."
-
-**② Get the `trace_id` (the pivot)** — from the router log line:
-```bash
-tail -50 /tmp/shopgraph/router.log | \
-  jq -rR 'fromjson? | select(.kind=="router.request") | .trace_id' | tail -1
-```
-> *Say:* "Same ID I'll paste into Jaeger and grep my logs with — one join key."
-
-**③ Jaeger — "exactly where"** ( http://localhost:16686 )
-- Paste the `trace_id` into the search (top-right "Lookup by Trace ID"), **or**
-  pick service `apollo-router-local`, Find Traces, sort by **Duration**.
-- Expand the waterfall: the `subgraph_request` / `subgraph` span for **orders** is
-  ~**800ms**; the rest of the request is microseconds.
-> *Say:* "Federation gives per-hop spans for free — the slow hop is unambiguous.
-> Without it, the subgraph is a black box."
-
-**④ Logs — "confirm, same id"**
-```bash
-TID=<paste>
-grep "$TID" /tmp/shopgraph/router.log | jq -c '{kind, trace_id, subgraph: ."subgraph.name"}'
-# and the subgraph's own inbound-trace log:
-grep -A4 "Incoming trace headers" /tmp/shopgraph/subgraphs.log | tail -8
-```
-> *Say:* "Identical `trace_id` in the router log, the subgraph's inbound header, and
-> the Jaeger span. One request, three tools, zero guesswork — a 4-hour incident
-> becomes a 4-minute one."
-
-### Disarm
-```bash
-# terminal A — Ctrl-C, then plain restart (drops the latency)
-npm run start:subgraphs
-```
-
----
-
-## Use Case 2 — Error correlation (quick second act)
-
-> *"Errors ticked up. Find the failing request and the failing hop."*
-
-### Arm
-```bash
-# terminal A — Ctrl-C, then:
-DEMO_FAIL_PRODUCT_ID=product:boom npm run start:subgraphs
-```
-
-### Trigger
-```bash
-curl -s http://localhost:4000/ -H 'content-type: application/json' \
-  -d '{"query":"query Boom { product(id:\"product:boom\"){ id title } }"}' | jq .
-# → response carries an `errors` array (include_subgraph_errors.all: true is on)
-```
-
-### Live script
-
-**① Prometheus — error signal** ( http://localhost:9090 )
-```promql
-# GraphQL error rate, broken down by error code. Rises only when errors occur.
-sum by (code) (rate(apollo_router_graphql_error_total[1m]))
-```
-> Verified on v2.15.0: `apollo_router_graphql_error_total{code="INTERNAL_SERVER_ERROR"}`
-> is a dedicated counter — it fires even though the HTTP status stays `200` (GraphQL
-> errors are 200 + an `errors` array). This is the clean metric signal; the trace
-> below tells you *which* subgraph.
-
-**② Jaeger — the errored span** ( http://localhost:16686 )
-- Service `apollo-router-local` → filter **Tags: `error=true`** → open the trace.
-- The **products** subgraph span is flagged; its tags/logs show
-  `Catalog lookup failed: downstream inventory timeout`.
-> *Say:* "The red span is `products` on the `product` field — federation attributes
-> the failure to the owning team (the `@contact` Catalog Team in this schema)."
-
-**③ Logs — confirm by `trace_id`**
+**Logs**:
 ```bash
 TID=<paste>
-grep "$TID" /tmp/shopgraph/router.log | jq -c 'select(.level=="ERROR" or (.message|test("error";"i"))) | {trace_id, kind, message}'
+grep "$TID" observability/.run/router.log | jq -c 'select(.level=="ERROR" or (.message|test("error";"i"))) | {trace_id, kind, message}'
 ```
-> *Say:* "Symptom flagged, location in the trace, root cause in the logs —
-> correlated by the same id, not by luck."
-
-### Disarm
-```bash
-npm run start:subgraphs
-```
-
----
 
 ## Teardown
 
 ```bash
-cd observability && docker compose down        # stop Jaeger + Prometheus
-# subgraphs/router: Ctrl-C in their terminals
+./observability/demo.sh down
 ```
-No `git` cleanup needed — the demo latency/error are env-flagged, so the committed
-code is already in its clean state.
+No git cleanup needed. The latency and error scenarios are env-flagged, so the committed code
+stays clean.
 
----
+## Talking points and caveats
 
-## Talking points / honest caveats
-
-- **`trace_id` is the universal join key** — it's in logs (`display_trace_id`),
-  it's the root span in Jaeger, and it labels the request lifecycle. The router
-  mints it when the client sends no `traceparent`, so cross-request tracking works
-  even for un-instrumented callers.
-- **Metric exemplars (one-click metric→trace jump) are NOT supported in Router
-  v2.15.0** (confirmed: no `exemplar` key in the config schema). The pivot here is
-  the manual `trace_id` copy from logs → Jaeger, which is bulletproof. Exemplars /
-  a Grafana single-pane can be a follow-up once supported.
-- **Metric names are OTel-spec** on v2.15.0 (`http_server_request_duration_seconds`,
-  `http_client_request_duration_seconds` with a `subgraph_name` label). Older
-  routers / legacy instrumentation mode emit `apollo_router_http_request_duration_*`.
-- **Jaeger all-in-one is in-memory** — traces reset on container restart. Perfect
-  for a demo, not for persistence.
-- **`localhost` is side-specific:** the router (on host) reaches Jaeger at
-  `localhost:4319`; Prometheus (in a container) reaches the router at
-  `host.docker.internal:9091`.
+- `trace_id` is the universal join key: in logs (`display_trace_id`), as the root span in
+  Jaeger, and labelling the request lifecycle.
+- Metric exemplars (one-click metric to trace) are not supported in Router v2.15.0. The pivot
+  here is the manual `trace_id` copy from logs or Jaeger, which always works.
+- Metric names are OTel-spec on v2.15.0: `http_server_request_duration_seconds` and
+  `http_client_request_duration_seconds` (the latter carries a `subgraph_name` label).
+- Jaeger all-in-one is in-memory; traces reset on container restart. Fine for a demo.
+- `localhost` is side-specific: the router (on the host) exports OTLP to the collector at
+  `localhost:4327`; the collector forwards to `jaeger:4317` inside the docker network;
+  Prometheus (in a container) scrapes the router at `host.docker.internal:9091`.
+- Traces flow Router -> OTel Collector -> Jaeger. The collector is where you add or swap a
+  trace backend without touching the router config.
+- Spans are marked as errors when a GraphQL error is present even though the HTTP status is
+  200, and traces are labelled by GraphQL operation name. So the error scenario shows failed
+  spans in Jaeger, not just in the metrics.

@@ -6,12 +6,14 @@
 # Usage:
 #   ./demo.sh up            # start Jaeger+Prometheus, subgraphs, router (clean)
 #   ./demo.sh status        # show what's running + URLs + scrape health
-#   ./demo.sh query         # fire one normal query, print trace_id + links
+#   ./demo.sh query         # fire one query with NO traceparent -> router MINTS a trace_id (Jaeger pivot)
+#   ./demo.sh propagate     # fire one query WITH a client traceparent -> router CONTINUES it
+#   ./demo.sh load [secs]   # drive sustained traffic (default 20s) so the Grafana panels populate
 #   ./demo.sh latency       # arm latency scenario, drive traffic, print trace_id + links
 #   ./demo.sh error         # arm error scenario, trigger it, print trace_id + links
 #   ./demo.sh reset         # subgraphs back to clean baseline (disarm scenarios)
 #   ./demo.sh down          # stop everything
-#   ./demo.sh open          # open the Jaeger + Prometheus UIs
+#   ./demo.sh open          # open the Grafana dashboard + Jaeger
 #
 # The router/subgraphs run on the host as background processes managed here;
 # logs + pids live in observability/.run/ (gitignored).
@@ -32,6 +34,7 @@ SUBGRAPH_PORT=4001
 METRICS_PORT=9091
 JAEGER_UI="http://localhost:16686"
 PROM_UI="http://localhost:9090"
+GRAFANA_UI="http://localhost:3000/d/shopgraph-router"
 
 # ── pretty output ──────────────────────────────────────────────────────
 c_blue=$'\033[34m'; c_green=$'\033[32m'; c_yellow=$'\033[33m'; c_red=$'\033[31m'; c_bold=$'\033[1m'; c_off=$'\033[0m'
@@ -42,7 +45,7 @@ warn() { printf "%s! %s%s\n" "$c_yellow" "$*" "$c_off"; }
 err()  { printf "%s✗ %s%s\n" "$c_red" "$*" "$c_off"; }
 
 # ── helpers ────────────────────────────────────────────────────────────
-pid_on_port() { lsof -nP -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1; }
+pid_on_port() { lsof -nP -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1 || true; }
 
 kill_port() {
   local p; p="$(pid_on_port "$1")"
@@ -141,6 +144,7 @@ cmd_status() {
   local health; health="$(curl -s "$PROM_UI/api/v1/targets" 2>/dev/null | grep -o '"health":"[a-z]*"' | head -1 | cut -d'"' -f4 || true)"
   [ "$health" = "up" ] && ok "prometheus → router scrape: up" || warn "prometheus → router scrape: ${health:-unknown}"
   echo
+  printf "  Grafana:       %s   (dashboards, the Datadog-style view)\n" "$GRAFANA_UI"
   printf "  Jaeger UI:     %s\n  Prometheus UI: %s\n" "$JAEGER_UI" "$PROM_UI"
 }
 
@@ -149,18 +153,57 @@ cmd_query() {
   local tid; tid="$(fire '{ orders { id status } }' 1)"
   ok "query sent"
   show_trace "$tid"
+  echo
+  say "  Note: ONE query barely registers on Grafana's rate-based panels. For the"
+  say "  dashboard to light up, drive sustained traffic: './demo.sh load' or './demo.sh latency'."
+}
+
+cmd_load() {
+  local secs="${1:-20}"
+  step "generating ~${secs}s of traffic (both subgraphs) to populate Grafana"
+  local end; end=$(( $(date +%s) + secs ))
+  local count=0
+  while [ "$(date +%s)" -lt "$end" ]; do
+    curl -s -o /dev/null http://localhost:4000/ -H 'content-type: application/json' \
+      -d '{"query":"{ order(id:\"order:2\"){ id status } searchProducts(searchInput:{}){ id title } }"}' || true
+    count=$((count+1))
+  done
+  ok "sent $count requests over ${secs}s"
+  say "  Open Grafana (give it ~10s to scrape): $GRAFANA_UI"
+}
+
+cmd_propagate() {
+  # Client sends its OWN W3C traceparent; the router should CONTINUE that trace
+  # (adopt the client's trace-id) rather than mint a new one. Contrast with `query`.
+  local tid sid
+  tid="$(openssl rand -hex 16)"   # 32 hex = client trace-id
+  sid="$(openssl rand -hex 8)"    # 16 hex = client span-id
+  step "client sends traceparent 00-$tid-$sid-01 (router should continue it)"
+  curl -s -o /dev/null http://localhost:4000/ -H 'content-type: application/json' \
+    -H "traceparent: 00-$tid-$sid-01" \
+    -d '{"query":"{ order(id:\"order:2\"){ id status } searchProducts(searchInput:{}){ id title } }"}' || true
+  sleep 1
+  ok "router continued the client's trace (no new id minted)"
+  echo
+  printf "  %sclient trace_id%s  %s\n" "$c_bold" "$c_off" "$tid"
+  printf "  %sJaeger%s          %s/trace/%s\n" "$c_bold" "$c_off" "$JAEGER_UI" "$tid"
+  say "  The trace's root span is the router, filed under the CLIENT's trace-id above."
+  say "  Compare './demo.sh query' (no header) where the router MINTS a fresh id instead."
 }
 
 cmd_latency() {
   start_subgraphs DEMO_SLOW_ORDERS_MS=800
-  step "driving 10 slow 'order' queries"
-  local tid; tid="$(fire 'query Slow { order(id:"order:2"){ id status placedAt items{ quantity unitPrice } } }' 10)"
-  ok "latency scenario armed (orders ~800ms)"
+  step "driving 10 queries that hit BOTH subgraphs (orders slow + products fast)"
+  # Combined query so both subgraphs appear in metrics AND the trace shows a fast
+  # products span next to the slow orders span.
+  local tid; tid="$(fire '{ order(id:"order:2"){ id status } searchProducts(searchInput:{}){ id title } }' 10)"
+  ok "latency scenario armed (orders ~800ms, products fast)"
   show_trace "$tid"
   echo
-  say "  ${c_bold}Prometheus — p95 per subgraph (orders should stand out):${c_off}"
+  say "  ${c_bold}Prometheus — p95 per subgraph (orders ~0.8s, products ~0.002s):${c_off}"
   say "    histogram_quantile(0.95, sum by (le, subgraph_name) (rate(http_client_request_duration_seconds_bucket[1m])))"
-  say "  In Jaeger, open the trace above → the orders 'subgraph_request' span is the slow hop."
+  say "  In Jaeger: parents (router/supergraph/execution) all show ~800ms because they enclose"
+  say "  the slow child. The cause is the leaf 'subgraph [orders]' span; 'subgraph [products]' is ~2ms."
   warn "run './demo.sh reset' when done to disarm"
 }
 
@@ -184,7 +227,7 @@ cmd_reset() {
 }
 
 cmd_open() {
-  command -v open >/dev/null && open "$JAEGER_UI" "$PROM_UI" && ok "opened UIs" || say "Jaeger: $JAEGER_UI   Prometheus: $PROM_UI"
+  command -v open >/dev/null && open "$GRAFANA_UI" "$JAEGER_UI" && ok "opened Grafana + Jaeger" || say "Grafana: $GRAFANA_UI   Jaeger: $JAEGER_UI   Prometheus: $PROM_UI"
 }
 
 # ── dispatch ───────────────────────────────────────────────────────────
@@ -193,6 +236,8 @@ case "${1:-}" in
   down|stop)  cmd_down ;;
   status)     cmd_status ;;
   query)      cmd_query ;;
+  propagate)  cmd_propagate ;;
+  load)       cmd_load "${2:-20}" ;;
   latency)    cmd_latency ;;
   error)      cmd_error ;;
   reset)      cmd_reset ;;

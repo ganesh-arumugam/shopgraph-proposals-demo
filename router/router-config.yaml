@@ -39,8 +39,12 @@ telemetry:
   exporters:
     tracing:
       common:
-        # Name this service carries in every span — how it shows up in your tracing backend.
-        service_name: apollo-router-local
+        # Service identity in the trace backend. These OTel resource attributes
+        # define how the service and environment appear downstream (Jaeger / APM).
+        resource:
+          "service.name": "apollo-router-local"
+          "service.namespace": "shopgraph"
+          "deployment.environment.name": "demo"
         # always_on = trace every request. Use a fraction (e.g. 0.1) in production
         # to sample 10% of traffic and control cost/volume.
         sampler: always_on
@@ -52,17 +56,23 @@ telemetry:
         # client → router → subgraphs. This is what stitches the hops together.
         trace_context: true
       otlp:
-        # Export spans to an OpenTelemetry collector / Jaeger.
-        # Points at the LOCAL Jaeger in observability/docker-compose.yml.
-        # NOTE: host 4319 → Jaeger container 4317 (host 4317/4318 are used by
-        # another project's collector, so we remap). See observability/DEMO.md.
+        # Export spans via OTLP to the local OTel Collector, which forwards to Jaeger.
+        # The collector decouples the router from the backend: adding/swapping a trace
+        # destination is a change in observability/otel-collector-config.yml, not here.
+        # host 4327 → collector container 4317. See observability/docker-compose.yml.
         enabled: true
-        endpoint: http://localhost:4319
+        endpoint: http://localhost:4327
         protocol: grpc
 
     # Metrics for Prometheus to scrape. The router serves /metrics on this
     # host port; the Prometheus container reaches it via host.docker.internal.
     metrics:
+      common:
+        # Same service identity on metrics (exposed as target_info to Prometheus).
+        resource:
+          "service.name": "apollo-router-local"
+          "service.namespace": "shopgraph"
+          "deployment.environment.name": "demo"
       prometheus:
         enabled: true
         listen: 127.0.0.1:9091   # host port — keep distinct from Prometheus UI (:9090)
@@ -100,17 +110,54 @@ telemetry:
           # The trace ID the router actually used for this request.
           "debug.router.trace_id":
             trace_id: open_telemetry
+      supergraph:
+        attributes:
+          # Label the trace by the GraphQL operation name so traces are identifiable
+          # in Jaeger/APM by operation instead of a generic "supergraph" span.
+          graphql.operation.name: true
+          resource.name:
+            operation_name: string
+          # Mark the span as an ERROR when the response carries a GraphQL error, even
+          # though the HTTP status is 200. Without this, APMs treat GraphQL errors as
+          # successful requests. This is the trace-side complement to the error metric.
+          otel.status_code:
+            static: ERROR
+            condition:
+              eq:
+                - true
+                - on_graphql_error: true
+          otel.status_description:
+            response_errors: $[0].extensions.code
+          error.message:
+            response_errors: $[0].message
+          graphql.errors:
+            on_graphql_error: true
+      subgraph:
+        attributes:
+          # Which subgraph served the hop, and mark errors that originate there.
+          subgraph.name: true
+          otel.status_code:
+            static: ERROR
+            condition:
+              eq:
+                - true
+                - subgraph_on_graphql_error: true
+          graphql.errors:
+            subgraph_on_graphql_error: true
 
     # Emit a log line per request at the router stage. Without this, the router
     # logs nothing per-request and the span attributes above never print. The
     # emitted event inherits trace_id (display_trace_id) and the debug.incoming.*
     # span attributes (display_span_list + span_attributes) from logging.stdout.
+    # request: info gives one line per request carrying the trace_id and the
+    # incoming traceparent (the demo signal). response events are off because
+    # they dump the full response body/headers and are very noisy.
     events:
       router:
         request: info
-        response: info
+        response: off
       # Outbound hop: log the trace context the router sends to each subgraph,
       # complementing the subgraph's own incoming-header logging.
       subgraph:
         request: info
-        response: info
+        response: off
