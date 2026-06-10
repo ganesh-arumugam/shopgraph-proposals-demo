@@ -89,10 +89,19 @@ start_router() {
   else err "router failed to start:"; grep '"level":"ERROR"' "$ROUTER_LOG" | tail -3; return 1; fi
 }
 
+# Compose args. Add the Dynatrace overlay automatically when a token is set
+# (bash 3.2 compatible — no mapfile).
+COMPOSE_ARGS=(-f docker-compose.yml)
+[ -n "${DT_API_TOKEN:-}" ] && COMPOSE_ARGS+=(-f docker-compose.dynatrace.yml)
+
 backends_up() {
-  step "starting Jaeger + Prometheus (docker compose)"
-  ( cd "$SCRIPT_DIR" && docker compose up -d >/dev/null )
-  ok "backends up — Jaeger $JAEGER_UI · Prometheus $PROM_UI"
+  if [ -n "${DT_API_TOKEN:-}" ]; then
+    step "starting Jaeger + Prometheus + Grafana + Dynatrace export (docker compose)"
+  else
+    step "starting Jaeger + Prometheus + Grafana (docker compose)"
+  fi
+  ( cd "$SCRIPT_DIR" && docker compose "${COMPOSE_ARGS[@]}" up -d >/dev/null )
+  ok "backends up — Jaeger $JAEGER_UI · Prometheus $PROM_UI${DT_API_TOKEN:+ · Dynatrace on}"
 }
 
 # Fire a query (no traceparent → router mints the trace_id), return last trace_id.
@@ -130,7 +139,7 @@ cmd_down() {
   step "stopping router + subgraphs"
   kill_port "$ROUTER_PORT"; kill_port "$SUBGRAPH_PORT"
   step "stopping backends"
-  ( cd "$SCRIPT_DIR" && docker compose down >/dev/null 2>&1 || true )
+  ( cd "$SCRIPT_DIR" && docker compose "${COMPOSE_ARGS[@]}" down >/dev/null 2>&1 || true )
   ok "all stopped"
 }
 

@@ -1,0 +1,44 @@
+# OTel Collector config — Dynatrace variant.
+#
+# Same as otel-collector-config.yml, but the traces pipeline fans out to BOTH the
+# local Jaeger AND Dynatrace. The Apollo Router config does not change: the router
+# still exports OTLP to this collector. Adding Dynatrace is a change here only.
+#
+#   Router (host) --OTLP :4327--> Collector --+--> Jaeger (local)
+#                                             +--> Dynatrace (OTLP/HTTP + Api-Token)
+#
+# Enable via the compose overlay (see observability/docker-compose.dynatrace.yml):
+#   DT_OTLP_ENDPOINT and DT_API_TOKEN must be set in the environment.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  # Local trace UI (kept so the demo still works offline / for side-by-side).
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Dynatrace OTLP ingest. The exporter POSTs to <endpoint>/v1/traces.
+  #   DT_OTLP_ENDPOINT example (SaaS):  https://<env-id>.live.dynatrace.com/api/v2/otlp
+  #   DT_API_TOKEN must have the "openTelemetryTrace.ingest" scope.
+  otlphttp/dynatrace:
+    endpoint: ${env:DT_OTLP_ENDPOINT}
+    headers:
+      Authorization: "Api-Token ${env:DT_API_TOKEN}"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, otlphttp/dynatrace]

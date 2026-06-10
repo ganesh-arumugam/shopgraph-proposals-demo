@@ -1,0 +1,21 @@
+# Dynatrace overlay for the observability stack.
+#
+# Layer this on top of the base compose to fan traces out to Dynatrace as well as
+# Jaeger. Requires DT_OTLP_ENDPOINT and DT_API_TOKEN in the environment
+# (copy dynatrace.env.example to .env in this directory, or export them).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dynatrace.yml up -d
+#
+# Or simply set the vars and use the driver, which adds this overlay automatically
+# when DT_API_TOKEN is present:
+#   DT_OTLP_ENDPOINT=... DT_API_TOKEN=... ./demo.sh up
+
+services:
+  otel-collector:
+    # Point the collector at the Dynatrace-enabled config (fans out Jaeger + Dynatrace).
+    command: ["--config=/etc/otel-collector-config.dynatrace.yml"]
+    volumes:
+      - ./otel-collector-config.dynatrace.yml:/etc/otel-collector-config.dynatrace.yml:ro
+    environment:
+      DT_OTLP_ENDPOINT: ${DT_OTLP_ENDPOINT}
+      DT_API_TOKEN: ${DT_API_TOKEN}
