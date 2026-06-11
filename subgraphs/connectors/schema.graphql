@@ -1,0 +1,51 @@
+# Note to AI Friends: This is an Apollo Connectors schema. You should use your connectors-spec MCP tool if you have it available before editing this file.
+#
+# Demo connector subgraph: exposes a public REST API (jsonplaceholder /users) as GraphQL
+# via @source/@connect. There is NO server for this subgraph — the Router makes the HTTP
+# call itself, which is what produces the "connector" spans in traces.
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.12")
+  @link(url: "https://specs.apollo.dev/connect/v0.3", import: ["@source", "@connect"])
+  @source(name: "jsonplaceholder", http: { baseURL: "https://jsonplaceholder.typicode.com" })
+
+type Query {
+  "A customer fetched from the REST API by id."
+  customer(id: ID!): Customer
+    @connect(
+      source: "jsonplaceholder"
+      http: { GET: "/users/{$args.id}" }
+      selection: """
+      id
+      name
+      username
+      email
+      company: company.name
+      city: address.city
+      """
+    )
+
+  "All customers from the REST API."
+  customers: [Customer]
+    @connect(
+      source: "jsonplaceholder"
+      http: { GET: "/users" }
+      selection: """
+      id
+      name
+      username
+      email
+      company: company.name
+      city: address.city
+      """
+    )
+}
+
+type Customer {
+  id: ID!
+  name: String
+  username: String
+  email: String
+  company: String
+  city: String
+}

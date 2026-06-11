@@ -1,0 +1,24 @@
+# Local composition config for the Connectors demo (products + orders + connector).
+# Composed offline with rover, then run by our own router with the telemetry config,
+# so connector spans show up in Jaeger/Dynatrace. This does NOT touch the GraphOS graph.
+#
+#   cd router && rover supergraph compose --config ./supergraph-connectors.yaml > supergraph-connectors.graphql
+federation_version: "=2.14.1"
+
+subgraphs:
+  products:
+    routing_url: http://localhost:4001/products/graphql
+    schema:
+      file: ../subgraphs/products/schema.graphql
+
+  orders:
+    routing_url: http://localhost:4001/orders/graphql
+    schema:
+      file: ../subgraphs/orders/schema.graphql
+
+  # Connector subgraph: no server. The routing_url is a placeholder; the @source
+  # baseURL in the schema is what the Router actually calls.
+  customers:
+    routing_url: http://connectors.invalid/placeholder
+    schema:
+      file: ../subgraphs/connectors/schema.graphql

@@ -26,8 +26,6 @@ cors:
 # Enable sandbox in development
 sandbox:
   enabled: true
-
-# Disable homepage (conflicts with sandbox)
 homepage:
   enabled: false
 
@@ -75,7 +73,7 @@ telemetry:
           "deployment.environment.name": "demo"
       prometheus:
         enabled: true
-        listen: 127.0.0.1:9091   # host port — keep distinct from Prometheus UI (:9090)
+        listen: 127.0.0.1:9091 # host port — keep distinct from Prometheus UI (:9090)
         path: /metrics
 
     logging:
@@ -99,6 +97,7 @@ telemetry:
     # appear in traces / on log lines once an event (below) is emitted in the span.
     spans:
       mode: spec_compliant # OpenTelemetry-standard span naming/attributes
+      default_attribute_requirement_level: recommended
       router:
         attributes:
           # Capture the raw inbound trace headers so you can SEE what the client sent
@@ -144,6 +143,27 @@ telemetry:
                 - subgraph_on_graphql_error: true
           graphql.errors:
             subgraph_on_graphql_error: true
+      # Connector spans: when a field is backed by Apollo Connectors, the Router makes
+      # the REST call itself and emits connect spans. Surface which REST source, method,
+      # and URL template the connector used so the trace shows the outbound API call.
+      connector:
+        attributes:
+          subgraph.name: true
+          connector.source.name: true
+          connector.http.method: true
+          connector.url.template: true
+
+    instruments:
+      default_requirement_level: required # enables all http.* by default
+      router:
+        apollo.router.overhead: true
+        http.server.request.duration:
+          attributes:
+            http.request.method: true
+      subgraph:
+        http.client.request.duration:
+          attributes:
+            subgraph.name: true
 
     # Emit a log line per request at the router stage. Without this, the router
     # logs nothing per-request and the span attributes above never print. The

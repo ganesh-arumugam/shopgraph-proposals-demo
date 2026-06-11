@@ -1,0 +1,199 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.5", for: EXECUTION)
+  @link(url: "https://specs.apollo.dev/tag/v0.3")
+  @link(url: "https://specs.apollo.dev/connect/v0.3", for: EXECUTION)
+  @join__directive(graphs: [CUSTOMERS], name: "link", args: {url: "https://specs.apollo.dev/connect/v0.3", import: ["@source", "@connect"]})
+  @join__directive(graphs: [CUSTOMERS], name: "source", args: {name: "jsonplaceholder", http: {baseURL: "https://jsonplaceholder.typicode.com"}})
+{
+  query: Query
+}
+
+directive @join__directive(graphs: [join__Graph!], name: String!, args: join__DirectiveArguments) repeatable on SCHEMA | OBJECT | INTERFACE | FIELD_DEFINITION
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean, overrideLabel: String, contextArguments: [join__ContextArgument!]) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+directive @tag(name: String!) repeatable on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | SCHEMA
+
+type Customer
+  @join__type(graph: CUSTOMERS)
+{
+  id: ID!
+  name: String
+  username: String
+  email: String
+  company: String
+  city: String
+}
+
+input join__ContextArgument {
+  name: String!
+  type: String!
+  context: String!
+  selection: join__FieldValue!
+}
+
+scalar join__DirectiveArguments
+
+scalar join__FieldSet
+
+scalar join__FieldValue
+
+enum join__Graph {
+  CUSTOMERS @join__graph(name: "customers", url: "http://connectors.invalid/placeholder")
+  ORDERS @join__graph(name: "orders", url: "http://localhost:4001/orders/graphql")
+  PRODUCTS @join__graph(name: "products", url: "http://localhost:4001/products/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+"""A customer purchase. Contains the buyer and all purchased variants."""
+type Order
+  @join__type(graph: ORDERS, key: "id")
+  @tag(name: "public")
+{
+  """Unique order identifier"""
+  id: ID! @tag(name: "public")
+
+  """
+  Internal buyer reference — PII-adjacent, not exposed to storefront consumers.
+  """
+  buyerId: ID! @tag(name: "internal")
+
+  """All variants (products) included in this order"""
+  items: [OrderItem!]! @tag(name: "public")
+
+  """Current fulfilment status of the order"""
+  status: OrderStatus! @tag(name: "public")
+
+  """ISO 8601 date-time when the order was placed"""
+  placedAt: String! @tag(name: "public")
+}
+
+"""A single line-item within an order"""
+type OrderItem
+  @join__type(graph: ORDERS)
+  @tag(name: "public")
+{
+  variant: Variant! @tag(name: "public")
+  quantity: Int! @tag(name: "public")
+  unitPrice: Float! @tag(name: "public")
+}
+
+"""The lifecycle status of an order"""
+enum OrderStatus
+  @join__type(graph: ORDERS)
+  @tag(name: "public")
+{
+  PLACED @join__enumValue(graph: ORDERS)
+  PROCESSING @join__enumValue(graph: ORDERS)
+  SHIPPED @join__enumValue(graph: ORDERS)
+  DELIVERED @join__enumValue(graph: ORDERS)
+  CANCELLED @join__enumValue(graph: ORDERS)
+}
+
+"""
+A product sold in the ShopGraph store. Contains high-level details.
+For purchasable items, see Variant.
+"""
+type Product
+  @join__type(graph: PRODUCTS, key: "id")
+  @tag(name: "public")
+{
+  id: ID! @tag(name: "public")
+  title: String! @tag(name: "public")
+  description: String @tag(name: "public")
+  mediaUrl: String @tag(name: "public")
+
+  """
+  Internal categorization — used by merchandising and ops, not exposed to storefront.
+  """
+  category: String @tag(name: "internal")
+
+  """
+  All purchasable variants of this product (different sizes, colors, etc.)
+  """
+  variants: [Variant] @tag(name: "public")
+}
+
+"""Search filters when querying Products"""
+input ProductSearchInput
+  @join__type(graph: PRODUCTS)
+{
+  titleStartsWith: String @tag(name: "public")
+}
+
+type Query
+  @join__type(graph: CUSTOMERS)
+  @join__type(graph: ORDERS)
+  @join__type(graph: PRODUCTS)
+{
+  """A customer fetched from the REST API by id."""
+  customer(id: ID!): Customer @join__field(graph: CUSTOMERS) @join__directive(graphs: [CUSTOMERS], name: "connect", args: {source: "jsonplaceholder", http: {GET: "/users/{$args.id}"}, selection: "id\nname\nusername\nemail\ncompany: company.name\ncity: address.city"})
+
+  """All customers from the REST API."""
+  customers: [Customer] @join__field(graph: CUSTOMERS) @join__directive(graphs: [CUSTOMERS], name: "connect", args: {source: "jsonplaceholder", http: {GET: "/users"}, selection: "id\nname\nusername\nemail\ncompany: company.name\ncity: address.city"})
+
+  """
+  Get a specific order by ID. Use for order detail and confirmation pages.
+  """
+  order(id: ID!): Order @join__field(graph: ORDERS) @tag(name: "public")
+
+  """List all orders — internal ops and fulfillment use only."""
+  orders: [Order] @join__field(graph: ORDERS) @tag(name: "internal")
+
+  """Get all available products. Optionally filter by title prefix."""
+  searchProducts(searchInput: ProductSearchInput! = {}): [Product] @join__field(graph: PRODUCTS) @tag(name: "public")
+
+  """
+  Get a specific product by ID. Use for product detail pages and checkout.
+  """
+  product(id: ID!): Product @join__field(graph: PRODUCTS) @tag(name: "public")
+
+  """Get a specific variant by ID."""
+  variant(id: ID!): Variant @join__field(graph: PRODUCTS) @tag(name: "internal")
+}
+
+"""
+A purchasable variant of a Product — a unique combination of size, color, and price.
+Variants are the entities added to carts and orders.
+"""
+type Variant
+  @join__type(graph: ORDERS, key: "id", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "id")
+  @tag(name: "public")
+{
+  id: ID! @tag(name: "public")
+
+  """
+  Back-reference to parent product — internal use only (avoid N+1 on storefront).
+  """
+  product: Product @join__field(graph: PRODUCTS) @tag(name: "internal")
+  colorway: String @join__field(graph: PRODUCTS) @tag(name: "public")
+  price: Float! @join__field(graph: PRODUCTS) @tag(name: "public")
+  size: String @join__field(graph: PRODUCTS) @tag(name: "public")
+}

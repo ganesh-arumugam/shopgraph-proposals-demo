@@ -6,6 +6,7 @@
 # Usage:
 #   ./demo.sh up            # start Jaeger+Prometheus, subgraphs, router (clean)
 #   ./demo.sh status        # show what's running + URLs + scrape health
+#   ./demo.sh connectors    # run with a REST connector supergraph -> shows connect spans in the trace
 #   ./demo.sh query         # fire one query with NO traceparent -> router MINTS a trace_id (Jaeger pivot)
 #   ./demo.sh propagate     # fire one query WITH a client traceparent -> router CONTINUES it
 #   ./demo.sh load [secs]   # drive sustained traffic (default 20s) so the Grafana panels populate
@@ -157,6 +158,36 @@ cmd_up() {
   echo; cmd_status
 }
 
+# Connectors demo: run the router with a LOCALLY composed supergraph that includes a
+# REST connector subgraph, so the trace shows the Router's outbound REST call as
+# connect spans. Uses local composition (does not touch the GraphOS graph).
+cmd_connectors() {
+  local cfg="$REPO/router/supergraph-connectors.yaml"
+  local sg="$REPO/router/supergraph-connectors.graphql"
+  local src="$REPO/subgraphs/connectors/schema.graphql"
+  if [ ! -f "$sg" ] || [ "$src" -nt "$sg" ] || [ "$cfg" -nt "$sg" ]; then
+    step "composing supergraph (products + orders + connector)"
+    ( cd "$REPO/router" && rover supergraph compose --config ./supergraph-connectors.yaml > supergraph-connectors.graphql 2>/tmp/connectors-compose-err ) \
+      && ok "composed" || { err "compose failed:"; tail -5 /tmp/connectors-compose-err; return 1; }
+  fi
+  backends_up
+  start_subgraphs
+  ensure_router_binary
+  kill_port "$ROUTER_PORT"
+  step "starting router with the local connector supergraph"
+  ( cd "$REPO/router" && nohup ./router --supergraph ./supergraph-connectors.graphql --config ./router-config.yaml >"$ROUTER_LOG" 2>&1 & )
+  wait_for "$ROUTER_LOG" 'GraphQL endpoint exposed|"level":"ERROR"' 45 "router"
+  if grep -q "GraphQL endpoint exposed" "$ROUTER_LOG"; then ok "router up (connector supergraph)"
+  else err "router failed:"; grep '"level":"ERROR"' "$ROUTER_LOG" | tail -3; return 1; fi
+  step "querying the connector field (Router calls the REST API)"
+  local tid; tid="$(fire '{ customer(id:"2"){ id name email company city } }' 1)"
+  ok "connector query sent"
+  show_trace "$tid"
+  echo
+  say "  The trace's connect_request span shows the outbound REST call:"
+  say "    connector.source.name=jsonplaceholder  connector.http.method=GET  connector.url.template=/users/{\$args.id}"
+}
+
 cmd_down() {
   step "stopping router + subgraphs"
   kill_port "$ROUTER_PORT"; kill_port "$SUBGRAPH_PORT"
@@ -264,6 +295,7 @@ cmd_open() {
 # ── dispatch ───────────────────────────────────────────────────────────
 case "${1:-}" in
   up|start)   cmd_up ;;
+  connectors) cmd_connectors ;;
   down|stop)  cmd_down ;;
   status)     cmd_status ;;
   query)      cmd_query ;;
