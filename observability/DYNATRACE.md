@@ -1,21 +1,27 @@
-# Sending Router traces to Dynatrace
+# Sending Router traces and logs to Dynatrace
 
-This adds Dynatrace as a trace backend without changing the router. The OTel Collector
-fans traces out to both the local Jaeger and Dynatrace, so you can demo side by side.
+This adds Dynatrace as a backend without changing the router. The OTel Collector fans
+**traces** out to both Jaeger and Dynatrace, and ships the router's **logs** to Dynatrace
+with `trace_id`/`span_id` so they correlate to the traces (the Logs tab on a trace).
 
 ```text
-  Apollo Router :4000  ──OTLP :4327──▶  OTel Collector  ──┬──▶  Jaeger :16686   (local)
-                                                          └──▶  Dynatrace       (OTLP/HTTP + Api-Token)
+  Apollo Router :4000 ──OTLP :4327──▶ OTel Collector ──┬──▶ Jaeger :16686  (traces, local)
+                                                        └──▶ Dynatrace      (traces)
+  Router stdout log ───────filelog────▶ OTel Collector ────▶ Dynatrace      (logs, w/ trace_id)
 ```
 
 The router config is identical to the base demo. Dynatrace is configured only in the
-collector, which is the whole point of having a collector in the path.
+collector, which is the whole point of having a collector in the path. The router has no
+OTLP log exporter, so logs are shipped by tailing its stdout log file (mounted into the
+collector); each line's `trace_id`/`span_id` is lifted onto the log record for correlation.
 
 ## Prerequisites
 
 1. A Dynatrace environment (SaaS or Managed).
-2. An API token with the **`openTelemetryTrace.ingest`** scope.
-   Dynatrace console: Access Tokens > Generate new token > enable that scope.
+2. An API token with **both** scopes:
+   - **`openTelemetryTrace.ingest`** (traces)
+   - **`logs.ingest`** (logs, for the Logs-on-a-trace correlation)
+   Dynatrace console: Access Tokens > Generate new token > enable those scopes.
 3. Your OTLP endpoint:
    - SaaS: `https://<env-id>.live.dynatrace.com/api/v2/otlp`
    - Managed: `https://<your-domain>/e/<env-id>/api/v2/otlp`

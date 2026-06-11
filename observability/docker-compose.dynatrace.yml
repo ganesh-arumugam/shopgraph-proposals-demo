@@ -16,6 +16,8 @@ services:
     command: ["--config=/etc/otel-collector-config.dynatrace.yml"]
     volumes:
       - ./otel-collector-config.dynatrace.yml:/etc/otel-collector-config.dynatrace.yml:ro
+      # Router stdout log (written by demo.sh) so the filelog receiver can ship logs.
+      - ./.run:/var/log/shopgraph:ro
     environment:
       DT_OTLP_ENDPOINT: ${DT_OTLP_ENDPOINT}
       DT_API_TOKEN: ${DT_API_TOKEN}
