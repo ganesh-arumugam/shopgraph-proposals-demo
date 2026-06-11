@@ -28,6 +28,28 @@ mkdir -p "$RUN"
 SUBGRAPH_LOG="$RUN/subgraphs.log"
 ROUTER_LOG="$RUN/router.log"
 
+# ── credentials ─────────────────────────────────────────────────────────
+# Load ONLY DT_* vars from the repo-root .env. We deliberately do NOT source the
+# whole file: it also holds APOLLO_GRAPH_ID + APOLLO_GRAPH_REF, and leaking both
+# into the subgraphs makes Apollo Server fail ("Cannot specify both graph ref and
+# graph ID"). The router reads APOLLO_* itself via start_router.sh.
+if [ -f "$REPO/.env" ]; then
+  while IFS= read -r _line; do
+    case "$_line" in
+      DT_*=*)
+        _k=${_line%%=*}; _v=${_line#*=}
+        _v=${_v#[\"\']}; _v=${_v%[\"\']}        # strip one layer of surrounding quotes
+        export "$_k=$_v" ;;
+    esac
+  done < "$REPO/.env"
+  unset _line _k _v 2>/dev/null || true
+fi
+# Derive the Dynatrace OTLP endpoint from the environment id (SaaS) when not set
+# explicitly. For Managed/ActiveGate, set DT_OTLP_ENDPOINT in .env directly.
+if [ -z "${DT_OTLP_ENDPOINT:-}" ] && [ -n "${DT_ENVIRONMENT_ID:-}" ]; then
+  export DT_OTLP_ENDPOINT="https://${DT_ENVIRONMENT_ID}.live.dynatrace.com/api/v2/otlp"
+fi
+
 # ── ports / urls ───────────────────────────────────────────────────────
 ROUTER_PORT=4000
 SUBGRAPH_PORT=4001
