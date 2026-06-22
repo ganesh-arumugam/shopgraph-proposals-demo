@@ -53,6 +53,11 @@ telemetry:
         # Read/forward the W3C `traceparent` header so one trace ID spans
         # client → router → subgraphs. This is what stitches the hops together.
         trace_context: true
+      # Return the trace id to the client on a response header, so a caller (Bruno,
+      # a browser, QA) can copy it straight into Jaeger / Dynatrace to find the trace.
+      experimental_response_trace_id:
+        enabled: true
+        header_name: apollo-trace-id
       otlp:
         # Export spans via OTLP to the local OTel Collector, which forwards to Jaeger.
         # The collector decouples the router from the backend: adding/swapping a trace
