@@ -2,7 +2,7 @@ name: Schema Check
 
 # Runs rover subgraph check on every PR that touches a subgraph schema.
 # The Proposals check task is configured to ERROR severity in GraphOS Studio:
-#   Graph Settings → Proposals → Schema Checks → Severity: Error
+#   Graph Settings -> Proposals -> Schema Checks -> Severity: Error
 #
 # This means: if the schema changes are NOT part of an approved Proposal,
 # this check FAILS and the PR cannot be merged. This is the CI governance gate.
@@ -15,7 +15,7 @@ on:
 
 jobs:
   schema-check-products:
-    name: "Check — products subgraph"
+    name: "Check - products subgraph"
     runs-on: ubuntu-latest
     # Only run if the products schema changed
     if: |
@@ -40,7 +40,7 @@ jobs:
         # this step fails when changes aren't in an approved Proposal.
 
   schema-check-orders:
-    name: "Check — orders subgraph"
+    name: "Check - orders subgraph"
     runs-on: ubuntu-latest
     if: |
       contains(github.event.pull_request.changed_files, 'subgraphs/orders/schema.graphql') ||
@@ -61,8 +61,8 @@ jobs:
             --name orders \
             --schema ./subgraphs/orders/schema.graphql
         # This is the DEMO MOMENT:
-        # Before the Proposal is Approved → check shows:
-        #   ❌ Proposals: 1 change not included in an approved proposal
+        # Before the Proposal is Approved -> check shows:
+        #   [x] Proposals: 1 change not included in an approved proposal
         #
-        # After the Proposal is Approved → check shows:
-        #   ✅ Proposals: All changes are included in approved proposals
+        # After the Proposal is Approved -> check shows:
+        #   [ok] Proposals: All changes are included in approved proposals

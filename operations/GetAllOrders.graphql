@@ -1,5 +1,5 @@
 # Demo operation: View order history
-# Run this BEFORE the proposal — notice there is no estimatedDelivery field yet.
+# Run this BEFORE the proposal - notice there is no estimatedDelivery field yet.
 # After the proposal is Approved and Published, add estimatedDelivery to this query.
 query GetAllOrders {
   orders {
@@ -7,7 +7,7 @@ query GetAllOrders {
     buyerId
     status
     placedAt
-    # estimatedDelivery  ← will be available after the Proposal is Implemented
+    # estimatedDelivery  <- will be available after the Proposal is Implemented
     items {
       quantity
       unitPrice

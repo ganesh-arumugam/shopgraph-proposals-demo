@@ -21,7 +21,7 @@ on:
 
 jobs:
   sync-reviewers:
-    name: "Sync @contact → default reviewers"
+    name: "Sync @contact -> default reviewers"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

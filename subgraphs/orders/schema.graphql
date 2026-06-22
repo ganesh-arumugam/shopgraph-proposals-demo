@@ -26,7 +26,7 @@ type Query {
   order(id: ID!): Order @tag(name: "public")
 
   """
-  List all orders — internal ops and fulfillment use only.
+  List all orders - internal ops and fulfillment use only.
   """
   orders: [Order] @tag(name: "internal")
 }
@@ -41,7 +41,7 @@ type Order @key(fields: "id") @tag(name: "public") {
   id: ID! @tag(name: "public")
 
   """
-  Internal buyer reference — PII-adjacent, not exposed to storefront consumers.
+  Internal buyer reference - PII-adjacent, not exposed to storefront consumers.
   """
   buyerId: ID! @tag(name: "internal")
 
@@ -60,9 +60,9 @@ type Order @key(fields: "id") @tag(name: "public") {
   """
   placedAt: String! @tag(name: "public")
 
-  # ─── PROPOSAL TARGET ────────────────────────────────────────────────────────
+  # --- PROPOSAL TARGET --------------------------------------------------------
   # The field below will be ADDED via a Schema Proposal in the live demo.
-  # DO NOT add estimatedDelivery here — it is intentionally absent.
+  # DO NOT add estimatedDelivery here - it is intentionally absent.
   # After the proposal is Approved and this branch passes CI, it will be added:
   #
   # """
@@ -70,7 +70,7 @@ type Order @key(fields: "id") @tag(name: "public") {
   # Added via Schema Proposal: "Add estimatedDelivery to Order"
   # """
   # estimatedDelivery: String @tag(name: "public")
-  # ────────────────────────────────────────────────────────────────────────────
+  # ----------------------------------------------------------------------------
 }
 
 """

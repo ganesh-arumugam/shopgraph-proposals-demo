@@ -28,13 +28,13 @@ rover subgraph publish "$APOLLO_GRAPH_REF" \
   --schema ../subgraphs/products/schema.graphql \
   --routing-url "$SUBGRAPH_URL/products/graphql"
 
-echo "  ✓ products subgraph published"
+echo "  [ok] products subgraph published"
 
 rover subgraph publish "$APOLLO_GRAPH_REF" \
   --name orders \
   --schema ../subgraphs/orders/schema.graphql \
   --routing-url "$SUBGRAPH_URL/orders/graphql"
 
-echo "  ✓ orders subgraph published"
+echo "  [ok] orders subgraph published"
 echo ""
 echo "Done. Visit https://studio.apollographql.com to view your schema."

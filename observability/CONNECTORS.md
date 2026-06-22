@@ -6,9 +6,9 @@ the trace shows dedicated **connector spans** for that outbound REST request. No
 process is involved for the connector field.
 
 ```text
-  Client ─▶ Router ─▶ supergraph ─▶ execution ─▶ fetch (customers) ─▶ connect ─▶ connect_request ─▶ http_request
-                                                                                         │
-                                                                                         └─▶ GET https://jsonplaceholder.typicode.com/users/{id}
+  Client -> Router -> supergraph -> execution -> fetch (customers) -> connect -> connect_request -> http_request
+                                                                                         |
+                                                                                         +-> GET https://jsonplaceholder.typicode.com/users/{id}
 ```
 
 Compare with a normal subgraph hop, which shows `subgraph` / `subgraph_request` spans

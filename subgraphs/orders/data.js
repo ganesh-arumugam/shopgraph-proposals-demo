@@ -1,5 +1,5 @@
 // Mock order data for ShopGraph proposals demo.
-// estimatedDelivery is intentionally absent — it will be added via a Proposal.
+// estimatedDelivery is intentionally absent - it will be added via a Proposal.
 
 const now = new Date();
 const daysAgo = (n) => new Date(now - n * 86_400_000).toISOString();

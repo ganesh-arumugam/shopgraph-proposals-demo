@@ -1,4 +1,4 @@
-# OpenTelemetry Collector — sits between the Apollo Router and the trace backend.
+# OpenTelemetry Collector - sits between the Apollo Router and the trace backend.
 #
 #   Router (host)  --OTLP gRPC :4327-->  Collector  --OTLP-->  Jaeger (jaeger:4317)
 #

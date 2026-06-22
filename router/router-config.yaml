@@ -36,7 +36,7 @@ homepage:
 include_subgraph_errors:
   all: true
 
-# ─── Telemetry: Trace Propagation & Logging ─────────────
+# --- Telemetry: Trace Propagation & Logging -------------
 telemetry:
   exporters:
     tracing:
@@ -55,7 +55,7 @@ telemetry:
         parent_based_sampler: false
       propagation:
         # Read/forward the W3C `traceparent` header so one trace ID spans
-        # client → router → subgraphs. This is what stitches the hops together.
+        # client -> router -> subgraphs. This is what stitches the hops together.
         trace_context: true
       # Return the trace id to the client on a response header, so a caller (Bruno,
       # a browser, QA) can copy it straight into Jaeger / Dynatrace to find the trace.
@@ -66,7 +66,7 @@ telemetry:
         # Export spans via OTLP to the local OTel Collector, which forwards to Jaeger.
         # The collector decouples the router from the backend: adding/swapping a trace
         # destination is a change in observability/otel-collector-config.yml, not here.
-        # host 4327 → collector container 4317. See observability/docker-compose.yml.
+        # host 4327 -> collector container 4317. See observability/docker-compose.yml.
         enabled: true
         endpoint: http://localhost:4327
         protocol: grpc
@@ -82,7 +82,7 @@ telemetry:
           "deployment.environment.name": "demo"
       prometheus:
         enabled: true
-        listen: 127.0.0.1:9091 # host port — keep distinct from Prometheus UI (:9090)
+        listen: 127.0.0.1:9091 # host port - keep distinct from Prometheus UI (:9090)
         path: /metrics
 
     logging:
@@ -92,8 +92,8 @@ telemetry:
           # Structured JSON logs so trace fields are machine-parseable (jq, log pipelines).
           json:
             display_current_span: true # include the active span on each log line
-            display_span_list: true # include the full span chain (router→supergraph→subgraph)
-            display_trace_id: open_telemetry # stamp every line with the trace ID — the key to correlating hops
+            display_span_list: true # include the full span chain (router->supergraph->subgraph)
+            display_trace_id: open_telemetry # stamp every line with the trace ID - the key to correlating hops
             display_span_id: true
             # Surface these span attributes (defined under instrumentation.spans) on log lines.
             span_attributes:
@@ -110,7 +110,7 @@ telemetry:
       router:
         attributes:
           # Capture the raw inbound trace headers so you can SEE what the client sent
-          # (or didn't) — proves whether the router originated or continued the trace.
+          # (or didn't) - proves whether the router originated or continued the trace.
           "debug.incoming.traceparent":
             request_header: "traceparent"
           "debug.incoming.tracestate":

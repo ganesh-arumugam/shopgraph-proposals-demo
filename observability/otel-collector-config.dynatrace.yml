@@ -1,4 +1,4 @@
-# OTel Collector config — Dynatrace variant (traces + correlated logs).
+# OTel Collector config - Dynatrace variant (traces + correlated logs).
 #
 #   Router (host) --OTLP :4327--> Collector --+--> Jaeger        (traces, local)
 #                                             +--> Dynatrace     (traces, OTLP/HTTP + Api-Token)
@@ -30,7 +30,7 @@ receivers:
       - type: json_parser
         parse_to: attributes
         on_error: drop_quiet
-        # Router timestamps are RFC3339 with nanoseconds (…Z).
+        # Router timestamps are RFC3339 with nanoseconds (...Z).
         timestamp:
           parse_from: attributes.timestamp
           layout_type: gotime

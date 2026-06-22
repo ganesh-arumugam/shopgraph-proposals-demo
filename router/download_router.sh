@@ -8,7 +8,7 @@ ROUTER_VERSION="v2.15.0"
 DEST="./router"
 
 if [ -f "$DEST" ]; then
-  echo "Router binary already exists at $DEST — delete it first to re-download."
+  echo "Router binary already exists at $DEST - delete it first to re-download."
   exit 0
 fi
 
@@ -48,4 +48,4 @@ if [ "$OS" = "darwin" ]; then
   fi
 fi
 
-echo "✓ Router downloaded to $DEST"
+echo "[ok] Router downloaded to $DEST"

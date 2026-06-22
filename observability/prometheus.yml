@@ -1,6 +1,6 @@
 # Prometheus scrapes the HOST-run Apollo Router.
 # On macOS/Windows a container reaches the host via host.docker.internal
-# (NOT localhost — localhost would be the Prometheus container itself).
+# (NOT localhost - localhost would be the Prometheus container itself).
 global:
   scrape_interval: 5s        # snappy for a live demo
   evaluation_interval: 5s

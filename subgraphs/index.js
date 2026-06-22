@@ -1,5 +1,5 @@
 /**
- * ShopGraph Proposals Demo — Subgraph Server
+ * ShopGraph Proposals Demo - Subgraph Server
  *
  * Runs both subgraphs (products, orders) on a single Express server,
  * each at its own path. Mirrors the pattern from the existing feature template.
@@ -42,33 +42,33 @@ export const startSubgraphs = async (port = 4001) => {
       bodyParser.json(),
       expressMiddleware(server, {
         context: async ({ req }) => {
-          // ─── Trace Context Logging ───────────────────────
+          // --- Trace Context Logging -----------------------
           const traceparent = req.headers["traceparent"];
           const tracestate = req.headers["tracestate"];
           console.log(
-            `\n📡 [${subgraph.name}] Incoming trace headers:` +
+            `\n[${subgraph.name}] Incoming trace headers:` +
             `\n   traceparent: ${traceparent || "(not present)"}` +
             `\n   tracestate:  ${tracestate || "(not present)"}`
           );
           if (traceparent) {
             const [version, traceId, parentId, flags] = traceparent.split("-");
             console.log(
-              `   ├─ trace-id:  ${traceId}` +
-              `\n   ├─ parent-id: ${parentId}` +
-              `\n   └─ flags:     ${flags} (${flags === "01" ? "sampled" : "not sampled"})`
+              `   +- trace-id:  ${traceId}` +
+              `\n   +- parent-id: ${parentId}` +
+              `\n   +- flags:     ${flags} (${flags === "01" ? "sampled" : "not sampled"})`
             );
           }
-          // ─────────────────────────────────────────────────
+          // -------------------------------------------------
           return { headers: req.headers };
         },
       })
     );
 
-    console.log(`  ✓ [${subgraph.name}] → http://localhost:${serverPort}${path}`);
+    console.log(`  [ok] [${subgraph.name}] -> http://localhost:${serverPort}${path}`);
   }
 
   await new Promise((resolve) => httpServer.listen({ port: serverPort }, resolve));
-  console.log(`\n🚀 All subgraphs running on port ${serverPort}`);
+  console.log(`\nAll subgraphs running on port ${serverPort}`);
 };
 
 // Start when run directly

@@ -18,7 +18,7 @@
       "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
       "options": {
         "mode": "markdown",
-        "content": "### Apollo Router — federated supergraph (orders + products)\nMetrics scraped from the router's Prometheus endpoint. Drive data with `./observability/demo.sh load` (traffic), `latency` (orders slowdown), or `error` (subgraph failure). Correlate any request to a trace in **Jaeger** and to **logs** by its `trace_id`."
+        "content": "### Apollo Router - federated supergraph (orders + products)\nMetrics scraped from the router's Prometheus endpoint. Drive data with `./observability/demo.sh load` (traffic), `latency` (orders slowdown), or `error` (subgraph failure). Correlate any request to a trace in **Jaeger** and to **logs** by its `trace_id`."
       }
     },
     {
@@ -73,7 +73,7 @@
     {
       "id": 3,
       "title": "p95 latency by subgraph  (orders vs products)",
-      "description": "The headline panel. p95 of the router->subgraph hop, per subgraph. During the 'latency' scenario orders (red) climbs to ~0.8s while products (green) stays flat — localizing the slow hop.",
+      "description": "The headline panel. p95 of the router->subgraph hop, per subgraph. During the 'latency' scenario orders (red) climbs to ~0.8s while products (green) stays flat - localizing the slow hop.",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 9, "w": 16, "x": 0, "y": 11 },

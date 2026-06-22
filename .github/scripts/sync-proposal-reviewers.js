@@ -8,14 +8,14 @@
  *
  * This makes the schema the source of truth for proposal governance:
  *   @contact(name: "Commerce Team", email: "team@example.com")
- *   → team@example.com auto-added as default reviewer
+ *   -> team@example.com auto-added as default reviewer
  *
  * Usage:
  *   APOLLO_KEY=<key> APOLLO_GRAPH_ID=<id> node sync-proposal-reviewers.js
  *
  * Required env vars:
- *   APOLLO_KEY      — a Personal API key (service keys cannot list org members)
- *   APOLLO_GRAPH_ID — the GraphOS graph ID (not the graph ref)
+ *   APOLLO_KEY      - a Personal API key (service keys cannot list org members)
+ *   APOLLO_GRAPH_ID - the GraphOS graph ID (not the graph ref)
  */
 
 import { readFileSync } from "fs";
@@ -25,7 +25,7 @@ import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../..");
 
-// ─── Config ────────────────────────────────────────────────────────────────
+// --- Config ----------------------------------------------------------------
 
 const APOLLO_KEY = process.env.APOLLO_KEY;
 const APOLLO_GRAPH_ID = process.env.APOLLO_GRAPH_ID;
@@ -36,7 +36,7 @@ if (!APOLLO_KEY || !APOLLO_GRAPH_ID) {
   process.exit(1);
 }
 
-// ─── Step 1: Parse @contact directives from SDL files ──────────────────────
+// --- Step 1: Parse @contact directives from SDL files ----------------------
 
 const SUBGRAPH_SCHEMAS = [
   resolve(REPO_ROOT, "subgraphs/products/schema.graphql"),
@@ -69,7 +69,7 @@ for (const schemaPath of SUBGRAPH_SCHEMAS) {
   const label = schemaPath.split("/").slice(-2).join("/");
 
   if (email) {
-    console.log(`  Found @contact email in ${label}: "${name}" → ${email}`);
+    console.log(`  Found @contact email in ${label}: "${name}" -> ${email}`);
     reviewerEmails.add(email);
   } else {
     console.warn(`  WARNING: No email field in @contact in ${label}. Add email: "..." to the @contact directive.`);
@@ -81,7 +81,7 @@ if (reviewerEmails.size === 0) {
   process.exit(0);
 }
 
-// ─── Step 2: Resolve emails → GraphOS user IDs via Platform API ────────────
+// --- Step 2: Resolve emails -> GraphOS user IDs via Platform API ------------
 
 async function gql(query, variables = {}) {
   const res = await fetch(PLATFORM_API, {
@@ -104,7 +104,7 @@ async function gql(query, variables = {}) {
   return json.data;
 }
 
-// Fetch org members to resolve emails → user IDs
+// Fetch org members to resolve emails -> user IDs
 const orgData = await gql(`
   query GetOrgMembers($graphId: ID!) {
     graph(id: $graphId) {
@@ -133,7 +133,7 @@ for (const email of reviewerEmails) {
     console.warn(`  WARNING: Email "${email}" not found in GraphOS org. Skipping.`);
   } else {
     reviewerUserIds.push(userId);
-    console.log(`  Resolved ${email} → userId: ${userId}`);
+    console.log(`  Resolved ${email} -> userId: ${userId}`);
   }
 }
 
@@ -142,7 +142,7 @@ if (reviewerUserIds.length === 0) {
   process.exit(1);
 }
 
-// ─── Step 3: Update default reviewers via Platform API ─────────────────────
+// --- Step 3: Update default reviewers via Platform API ---------------------
 
 console.log(`\nUpdating default reviewers for graph: ${APOLLO_GRAPH_ID}`);
 console.log(`  Setting ${reviewerUserIds.length} default reviewer(s)...`);
@@ -167,6 +167,6 @@ const updateData = await gql(`
   }
 `, { graphId: APOLLO_GRAPH_ID, reviewerUserIds });
 
-console.log("\n✅ Default reviewers synced successfully.");
-console.log("   Verify in GraphOS Studio → Graph Settings → Proposals → Default Reviewers");
+console.log("\n[ok] Default reviewers synced successfully.");
+console.log("   Verify in GraphOS Studio -> Graph Settings -> Proposals -> Default Reviewers");
 console.log("\nReview result:", JSON.stringify(updateData, null, 2));

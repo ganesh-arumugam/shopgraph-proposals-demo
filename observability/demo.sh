@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ShopGraph observability demo driver — hands-free control of the
+# ShopGraph observability demo driver - hands-free control of the
 # logs + traces + metrics correlation demo (see DEMO.md).
 #
 # Usage:
@@ -21,7 +21,7 @@
 
 set -euo pipefail
 
-# ── paths ──────────────────────────────────────────────────────────────
+# -- paths --------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUN="$SCRIPT_DIR/.run"
@@ -29,7 +29,7 @@ mkdir -p "$RUN"
 SUBGRAPH_LOG="$RUN/subgraphs.log"
 ROUTER_LOG="$RUN/router.log"
 
-# ── credentials ─────────────────────────────────────────────────────────
+# -- credentials ---------------------------------------------------------
 # Load ONLY DT_* vars from the repo-root .env. We deliberately do NOT source the
 # whole file: it also holds APOLLO_GRAPH_ID + APOLLO_GRAPH_REF, and leaking both
 # into the subgraphs makes Apollo Server fail ("Cannot specify both graph ref and
@@ -51,7 +51,7 @@ if [ -z "${DT_OTLP_ENDPOINT:-}" ] && [ -n "${DT_ENVIRONMENT_ID:-}" ]; then
   export DT_OTLP_ENDPOINT="https://${DT_ENVIRONMENT_ID}.live.dynatrace.com/api/v2/otlp"
 fi
 
-# ── ports / urls ───────────────────────────────────────────────────────
+# -- ports / urls -------------------------------------------------------
 ROUTER_PORT=4000
 SUBGRAPH_PORT=4001
 METRICS_PORT=9091
@@ -59,15 +59,15 @@ JAEGER_UI="http://localhost:16686"
 PROM_UI="http://localhost:9090"
 GRAFANA_UI="http://localhost:3000/d/shopgraph-router"
 
-# ── pretty output ──────────────────────────────────────────────────────
+# -- pretty output ------------------------------------------------------
 c_blue=$'\033[34m'; c_green=$'\033[32m'; c_yellow=$'\033[33m'; c_red=$'\033[31m'; c_bold=$'\033[1m'; c_off=$'\033[0m'
 say()  { printf "%s\n" "$*"; }
-step() { printf "%s▸ %s%s\n" "$c_blue" "$*" "$c_off"; }
-ok()   { printf "%s✓ %s%s\n" "$c_green" "$*" "$c_off"; }
+step() { printf "%s> %s%s\n" "$c_blue" "$*" "$c_off"; }
+ok()   { printf "%s[ok] %s%s\n" "$c_green" "$*" "$c_off"; }
 warn() { printf "%s! %s%s\n" "$c_yellow" "$*" "$c_off"; }
-err()  { printf "%s✗ %s%s\n" "$c_red" "$*" "$c_off"; }
+err()  { printf "%s[x] %s%s\n" "$c_red" "$*" "$c_off"; }
 
-# ── helpers ────────────────────────────────────────────────────────────
+# -- helpers ------------------------------------------------------------
 pid_on_port() { lsof -nP -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -1 || true; }
 
 kill_port() {
@@ -85,10 +85,10 @@ wait_for() {           # wait_for <logfile> <grep-pattern> <timeout-s> <label>
 
 ensure_router_binary() {
   local bin="$REPO/router/router"
-  [ -f "$bin" ] || { err "router binary missing — run: npm run router:download"; exit 1; }
+  [ -f "$bin" ] || { err "router binary missing - run: npm run router:download"; exit 1; }
   # macOS Gatekeeper SIGKILLs freshly-copied unsigned binaries; re-sign defensively.
   if ! "$bin" --version >/dev/null 2>&1; then
-    warn "router binary failed to exec — re-signing ad-hoc (macOS Gatekeeper)"
+    warn "router binary failed to exec - re-signing ad-hoc (macOS Gatekeeper)"
     xattr -c "$bin" 2>/dev/null || true
     codesign --force --sign - "$bin" >/dev/null 2>&1 || true
   fi
@@ -113,7 +113,7 @@ start_router() {
 }
 
 # Compose args. Add the Dynatrace overlay automatically when a token is set
-# (bash 3.2 compatible — no mapfile).
+# (bash 3.2 compatible - no mapfile).
 COMPOSE_ARGS=(-f docker-compose.yml)
 [ -n "${DT_API_TOKEN:-}" ] && COMPOSE_ARGS+=(-f docker-compose.dynatrace.yml)
 
@@ -124,10 +124,10 @@ backends_up() {
     step "starting Jaeger + Prometheus + Grafana (docker compose)"
   fi
   ( cd "$SCRIPT_DIR" && docker compose "${COMPOSE_ARGS[@]}" up -d >/dev/null )
-  ok "backends up — Jaeger $JAEGER_UI · Prometheus $PROM_UI${DT_API_TOKEN:+ · Dynatrace on}"
+  ok "backends up - Jaeger $JAEGER_UI - Prometheus $PROM_UI${DT_API_TOKEN:+ - Dynatrace on}"
 }
 
-# Fire a query (no traceparent → router mints the trace_id), return last trace_id.
+# Fire a query (no traceparent -> router mints the trace_id), return last trace_id.
 fire() {               # fire '<graphql query string>' [count]
   local q="$1" n="${2:-1}" i
   for ((i=0;i<n;i++)); do
@@ -150,7 +150,7 @@ show_trace() {         # show_trace <trace_id> [extra note]
   printf "  %sLogs%s      grep %s %s\n" "$c_bold" "$c_off" "$tid" "$ROUTER_LOG"
 }
 
-# ── commands ───────────────────────────────────────────────────────────
+# -- commands -----------------------------------------------------------
 cmd_up() {
   backends_up
   start_subgraphs
@@ -204,14 +204,14 @@ cmd_status() {
   if curl -s "http://localhost:$METRICS_PORT/metrics" >/dev/null 2>&1; then ok "metrics   :$METRICS_PORT/metrics"; else err "metrics   :$METRICS_PORT down"; fi
   docker ps --filter name=shopgraph --format '  {{.Names}}: {{.Status}}' 2>/dev/null || true
   local health; health="$(curl -s "$PROM_UI/api/v1/targets" 2>/dev/null | grep -o '"health":"[a-z]*"' | head -1 | cut -d'"' -f4 || true)"
-  [ "$health" = "up" ] && ok "prometheus → router scrape: up" || warn "prometheus → router scrape: ${health:-unknown}"
+  [ "$health" = "up" ] && ok "prometheus -> router scrape: up" || warn "prometheus -> router scrape: ${health:-unknown}"
   echo
   printf "  Grafana:       %s   (dashboards, the Datadog-style view)\n" "$GRAFANA_UI"
   printf "  Jaeger UI:     %s\n  Prometheus UI: %s\n" "$JAEGER_UI" "$PROM_UI"
 }
 
 cmd_query() {
-  step "firing one query (no traceparent → router mints trace_id)"
+  step "firing one query (no traceparent -> router mints trace_id)"
   local tid; tid="$(fire '{ orders { id status } }' 1)"
   ok "query sent"
   show_trace "$tid"
@@ -262,7 +262,7 @@ cmd_latency() {
   ok "latency scenario armed (orders ~800ms, products fast)"
   show_trace "$tid"
   echo
-  say "  ${c_bold}Prometheus — p95 per subgraph (orders ~0.8s, products ~0.002s):${c_off}"
+  say "  ${c_bold}Prometheus - p95 per subgraph (orders ~0.8s, products ~0.002s):${c_off}"
   say "    histogram_quantile(0.95, sum by (le, subgraph_name) (rate(http_client_request_duration_seconds_bucket[1m])))"
   say "  In Jaeger: parents (router/supergraph/execution) all show ~800ms because they enclose"
   say "  the slow child. The cause is the leaf 'subgraph [orders]' span; 'subgraph [products]' is ~2ms."
@@ -276,9 +276,9 @@ cmd_error() {
   ok "error scenario armed + triggered"
   show_trace "$tid"
   echo
-  say "  ${c_bold}Prometheus — GraphQL error rate by code (fires even though HTTP stays 200):${c_off}"
+  say "  ${c_bold}Prometheus - GraphQL error rate by code (fires even though HTTP stays 200):${c_off}"
   say "    sum by (code) (rate(apollo_router_graphql_error_total[1m]))"
-  say "  In Jaeger: service apollo-router-local → filter Tags 'error=true' → open the trace."
+  say "  In Jaeger: service apollo-router-local -> filter Tags 'error=true' -> open the trace."
   say "  The products subgraph span is flagged with: 'Catalog lookup failed: downstream inventory timeout'"
   warn "run './demo.sh reset' when done to disarm"
 }
@@ -292,7 +292,7 @@ cmd_open() {
   command -v open >/dev/null && open "$GRAFANA_UI" "$JAEGER_UI" && ok "opened Grafana + Jaeger" || say "Grafana: $GRAFANA_UI   Jaeger: $JAEGER_UI   Prometheus: $PROM_UI"
 }
 
-# ── dispatch ───────────────────────────────────────────────────────────
+# -- dispatch -----------------------------------------------------------
 case "${1:-}" in
   up|start)   cmd_up ;;
   connectors) cmd_connectors ;;

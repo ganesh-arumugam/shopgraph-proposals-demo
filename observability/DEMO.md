@@ -13,18 +13,18 @@ decouples the router from the trace backend: swapping or adding a destination (T
 APM, a second backend) is a change in the collector, not in the router config.
 
 ```text
-  Client ──GraphQL──▶  Apollo Router :4000  ──subgraph fetch──▶  products / orders :4001
-                            │
-                            └──OTLP traces──▶  OTel Collector :4327  ──▶  Jaeger :16686
+  Client --GraphQL-->  Apollo Router :4000  --subgraph fetch-->  products / orders :4001
+                            |
+                            +--OTLP traces-->  OTel Collector :4327  -->  Jaeger :16686
 
-  Prometheus :9090  ──scrapes /metrics :9091──▶  Apollo Router
-  Grafana :3000     ──reads──▶  Prometheus
+  Prometheus :9090  --scrapes /metrics :9091-->  Apollo Router
+  Grafana :3000     --reads-->  Prometheus
 
   HOST   : Apollo Router, products / orders subgraphs
   DOCKER : OTel Collector, Jaeger, Prometheus, Grafana
 
-  Traces  : Router ▶ Collector ▶ Jaeger     (the collector decouples the trace backend)
-  Metrics : Prometheus scrapes Router ▶ Grafana visualizes
+  Traces  : Router > Collector > Jaeger     (the collector decouples the trace backend)
+  Metrics : Prometheus scrapes Router > Grafana visualizes
   Logs    : Router stdout JSON, trace_id on every line
 ```
 
@@ -32,17 +32,17 @@ How the three pillars share one `trace_id`:
 
 ```text
                           Incoming request
-                                 │
-        no traceparent ──────────┤────────── traceparent present
-                 │                                    │
-                 ▼                                    ▼
+                                 |
+        no traceparent ----------+---------- traceparent present
+                 |                                    |
+                 v                                    v
        Router MINTS a trace_id             Router CONTINUES the client's trace_id
-                 │                                    │
-                 └──────────────┬─────────────────────┘
-                                ▼
+                 |                                    |
+                 +--------------+---------------------+
+                                v
                           one trace_id
-              ┌─────────────────┼─────────────────┐
-              ▼                 ▼                 ▼
+              +-----------------+-----------------+
+              v                 v                 v
             LOGS              TRACES            METRICS
      trace_id on every   router + subgraph   request lifecycle
      line (display_      spans in Jaeger,    in Prometheus /

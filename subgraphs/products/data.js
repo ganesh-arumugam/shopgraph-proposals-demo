@@ -1,5 +1,5 @@
 // Mock product catalog for ShopGraph proposals demo
-// Deliberately small and legible — customers can read the data on screen
+// Deliberately small and legible - customers can read the data on screen
 
 export const PRODUCTS = [
   {

@@ -5,7 +5,7 @@
 - Node.js 20+
 - [Rover CLI](https://www.apollographql.com/docs/rover/getting-started) (`curl -sSL https://rover.apollo.dev/nix/latest | sh`)
 - A GraphOS account with a supergraph (or create a new one)
-- A **Personal API key** (not a service key — needed for the sync-reviewers script)
+- A **Personal API key** (not a service key - needed for the sync-reviewers script)
 
 ---
 
@@ -24,15 +24,15 @@ cp .env.example .env
 ```
 
 Edit `.env`:
-- `APOLLO_KEY` — your **Personal API key** from Studio → User Settings → API Keys
-- `APOLLO_GRAPH_ID` — your graph's ID (visible in Studio → Graph Settings)
-- `APOLLO_GRAPH_REF` — `<graph-id>@<variant>` — use a dev/staging variant
+- `APOLLO_KEY` - your **Personal API key** from Studio -> User Settings -> API Keys
+- `APOLLO_GRAPH_ID` - your graph's ID (visible in Studio -> Graph Settings)
+- `APOLLO_GRAPH_REF` - `<graph-id>@<variant>` - use a dev/staging variant
 
 ## 3. Create a new graph (if needed)
 
 If you don't have a dedicated graph for this demo:
 
-1. In Studio → click **+ Create Graph** → **Supergraph**
+1. In Studio -> click **+ Create Graph** -> **Supergraph**
 2. Note the graph ID and create a `dev` variant
 3. Update `.env` with the new values
 
@@ -63,14 +63,14 @@ npm run router:start
 
 ## 7. Configure Proposals in Studio
 
-Go to **Graph Settings → Proposals**:
+Go to **Graph Settings -> Proposals**:
 
 1. **Required approvals:** Set to `2` (or `1` for faster demos)
 2. **Require default reviewer approval:** Enable
 3. **Require reapprovals on revision:** Enable (optional, but great to show)
 4. **Description template:** Optionally add a template so proposals have structure
 
-Then go to **Graph Settings → Schema Checks → Checks Tasks**:
+Then go to **Graph Settings -> Schema Checks -> Checks Tasks**:
 1. Find the **Proposals** task
 2. Set severity to **Error**
 
@@ -91,16 +91,16 @@ Use real email addresses of people in your GraphOS org.
 
 ## 9. Set up GitHub Secrets & Variables
 
-In your GitHub repo → Settings → Secrets and variables → Actions:
+In your GitHub repo -> Settings -> Secrets and variables -> Actions:
 
 **Secrets:**
-- `APOLLO_KEY` — your Personal API key
+- `APOLLO_KEY` - your Personal API key
 
 **Variables:**
-- `APOLLO_GRAPH_ID` — your graph ID
-- `APOLLO_GRAPH_REF` — e.g. `my-graph@dev`
-- `PRODUCTS_SUBGRAPH_URL` — public URL for the products subgraph (for CI publish)
-- `ORDERS_SUBGRAPH_URL` — public URL for the orders subgraph (for CI publish)
+- `APOLLO_GRAPH_ID` - your graph ID
+- `APOLLO_GRAPH_REF` - e.g. `my-graph@dev`
+- `PRODUCTS_SUBGRAPH_URL` - public URL for the products subgraph (for CI publish)
+- `ORDERS_SUBGRAPH_URL` - public URL for the orders subgraph (for CI publish)
 
 ## 10. Create the demo branch
 
@@ -125,4 +125,4 @@ Order: {
 ```
 
 Push the branch and open a PR. The schema-check workflow will run and fail
-until the Proposal is approved — that's the demo's governance gate moment.
+until the Proposal is approved - that's the demo's governance gate moment.

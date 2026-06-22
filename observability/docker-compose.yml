@@ -1,9 +1,9 @@
 # Local observability stack for the ShopGraph demo.
 #
 # The Apollo Router runs ON THE HOST (127.0.0.1:4000), NOT in Docker.
-#   - Router → Collector:   router exports OTLP to localhost:4327 (host)
-#   - Collector → Jaeger:   collector forwards to jaeger:4317 (internal)
-#   - Prometheus → Router:  container scrapes host.docker.internal:9091
+#   - Router -> Collector:   router exports OTLP to localhost:4327 (host)
+#   - Collector -> Jaeger:   collector forwards to jaeger:4317 (internal)
+#   - Prometheus -> Router:  container scrapes host.docker.internal:9091
 #
 # Host ports 4317/4318 are used by an unrelated project's collector, so our
 # collector's OTLP port is published on 4327.
@@ -14,7 +14,7 @@
 name: shopgraph-observability
 
 services:
-  # ── Trace pipeline: OTel Collector (receives from the host router) ─────
+  # -- Trace pipeline: OTel Collector (receives from the host router) -----
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.105.0
     container_name: shopgraph-otel-collector
@@ -22,22 +22,22 @@ services:
     volumes:
       - ./otel-collector-config.yml:/etc/otel-collector-config.yml:ro
     ports:
-      - "4327:4317"     # OTLP gRPC  host 4327 → container 4317  (router targets this)
+      - "4327:4317"     # OTLP gRPC  host 4327 -> container 4317  (router targets this)
     depends_on:
       - jaeger
     restart: unless-stopped
 
-  # ── Traces: Jaeger all-in-one (OTLP from the collector, waterfall UI) ──
+  # -- Traces: Jaeger all-in-one (OTLP from the collector, waterfall UI) --
   jaeger:
     image: jaegertracing/all-in-one:1.62.0
     container_name: shopgraph-jaeger
     environment:
       COLLECTOR_OTLP_ENABLED: "true"   # accept OTLP from the collector (internal jaeger:4317)
     ports:
-      - "16686:16686"   # Jaeger UI            → http://localhost:16686
+      - "16686:16686"   # Jaeger UI            -> http://localhost:16686
     restart: unless-stopped
 
-  # ── Metrics: Prometheus, scraping the HOST router ──────────────────────
+  # -- Metrics: Prometheus, scraping the HOST router ----------------------
   prometheus:
     image: prom/prometheus:v2.55.1
     container_name: shopgraph-prometheus
@@ -46,17 +46,17 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
-      - "9090:9090"     # Prometheus UI        → http://localhost:9090
+      - "9090:9090"     # Prometheus UI        -> http://localhost:9090
     extra_hosts:
       - "host.docker.internal:host-gateway"   # ensure host is reachable on Linux/Docker too
     restart: unless-stopped
 
-  # ── Dashboards: Grafana, auto-provisioned with the router dashboard ────
+  # -- Dashboards: Grafana, auto-provisioned with the router dashboard ----
   grafana:
     image: grafana/grafana:11.1.0
     container_name: shopgraph-grafana
     ports:
-      - "3000:3000"     # Grafana UI           → http://localhost:3000
+      - "3000:3000"     # Grafana UI           -> http://localhost:3000
     environment:
       GF_AUTH_ANONYMOUS_ENABLED: "true"     # no login for the demo
       GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"

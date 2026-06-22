@@ -131,7 +131,7 @@ type Query
 }
 
 """
-A purchasable variant of a Product — a unique combination of size, color, and price.
+A purchasable variant of a Product - a unique combination of size, color, and price.
 Variants are the entities added to carts and orders.
 """
 type Variant

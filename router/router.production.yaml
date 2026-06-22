@@ -1,17 +1,17 @@
 # yaml-language-server: $schema=./router.schema.json
 # ^ Schema emitted by the v2.15.0 router binary (`./router config schema`).
 #
-# PRODUCTION router config — hardened counterpart to router-config.yaml (dev/demo).
+# PRODUCTION router config - hardened counterpart to router-config.yaml (dev/demo).
 # Telemetry profile validated against Apollo Router v2.15.0.
 #
 # Philosophy vs. the dev config: export SAMPLED TRACES to a collector, keep logs
 # structured, and emit lifecycle events NARROWLY. Blanket per-request events
-# (events.*.request/response: info) are a debugging tool — they add per-request
+# (events.*.request/response: info) are a debugging tool - they add per-request
 # overhead and are intentionally OFF here.
 
 supergraph:
   listen: 0.0.0.0:4000
-  # Disable introspection in production — don't expose the schema to the world.
+  # Disable introspection in production - don't expose the schema to the world.
   introspection: false
 
 # Health check for load balancers / k8s probes.
@@ -19,7 +19,7 @@ health_check:
   enabled: true
   listen: 0.0.0.0:8088
 
-# Scope header propagation to what subgraphs actually need — NOT ".*".
+# Scope header propagation to what subgraphs actually need - NOT ".*".
 # (Trace context is propagated by the telemetry layer below, not here.)
 headers:
   all:
@@ -29,7 +29,7 @@ headers:
       - propagate:
           named: x-correlation-id
 
-# Lock CORS to known origins — never use a wildcard in production.
+# Lock CORS to known origins - never use a wildcard in production.
 # v2 uses the policy-based structure; each policy can set its own methods/headers.
 cors:
   policies:
@@ -46,7 +46,7 @@ homepage:
 include_subgraph_errors:
   all: false
 
-# ─── Telemetry: sampled tracing + structured logging + narrow events ─────────
+# --- Telemetry: sampled tracing + structured logging + narrow events ---------
 telemetry:
   exporters:
     tracing:
@@ -62,7 +62,7 @@ telemetry:
         # stay intact. Set to false ONLY if the router is directly internet-facing
         # (i.e. there is no trusted upstream decision to respect).
         parent_based_sampler: true
-        # Bound telemetry volume per span — excess attributes/events/links are
+        # Bound telemetry volume per span - excess attributes/events/links are
         # dropped silently once these limits are exceeded.
         max_attributes_per_span: 128
         max_events_per_span: 128
@@ -84,15 +84,15 @@ telemetry:
           json:
             display_timestamp: true
             display_level: true
-            # Stamp every line with the trace ID — the key to correlating a log
+            # Stamp every line with the trace ID - the key to correlating a log
             # line back to a full trace in your APM.
             display_trace_id: open_telemetry
             display_span_id: true
-            # Keep lines lean in prod — the span list/current span add noise.
+            # Keep lines lean in prod - the span list/current span add noise.
             display_current_span: false
             display_span_list: false
         # Throttle stdout log volume (protects against log floods).
-        # NOTE: this rate-limits stdout logging only — it does NOT affect trace export.
+        # NOTE: this rate-limits stdout logging only - it does NOT affect trace export.
         rate_limit:
           capacity: 10
           interval: 1s
@@ -114,9 +114,9 @@ telemetry:
         response: off
         error: error
 
-    # ── To debug a live issue WITHOUT global per-request noise, do ONE of: ──
+    # -- To debug a live issue WITHOUT global per-request noise, do ONE of: --
     #
-    # (1) Conditional event — only log requests carrying a flag header:
+    # (1) Conditional event - only log requests carrying a flag header:
     #
     #     events:
     #       router:

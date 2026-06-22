@@ -5,9 +5,9 @@ This adds Dynatrace as a backend without changing the router. The OTel Collector
 with `trace_id`/`span_id` so they correlate to the traces (the Logs tab on a trace).
 
 ```text
-  Apollo Router :4000 ──OTLP :4327──▶ OTel Collector ──┬──▶ Jaeger :16686  (traces, local)
-                                                        └──▶ Dynatrace      (traces)
-  Router stdout log ───────filelog────▶ OTel Collector ────▶ Dynatrace      (logs, w/ trace_id)
+  Apollo Router :4000 --OTLP :4327--> OTel Collector --+--> Jaeger :16686  (traces, local)
+                                                        +--> Dynatrace      (traces)
+  Router stdout log -------filelog----> OTel Collector ----> Dynatrace      (logs, w/ trace_id)
 ```
 
 The router config is identical to the base demo. Dynatrace is configured only in the

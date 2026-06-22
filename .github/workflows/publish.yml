@@ -15,7 +15,7 @@ on:
 
 jobs:
   publish-products:
-    name: "Publish — products subgraph"
+    name: "Publish - products subgraph"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
             --routing-url ${{ vars.PRODUCTS_SUBGRAPH_URL }}
 
   publish-orders:
-    name: "Publish — orders subgraph"
+    name: "Publish - orders subgraph"
     runs-on: ubuntu-latest
     needs: publish-products
     steps:
@@ -56,4 +56,4 @@ jobs:
             --routing-url ${{ vars.ORDERS_SUBGRAPH_URL }}
         # After this step succeeds, GraphOS matches published changes to Proposals.
         # If all proposal changes are now published, the Proposal status
-        # automatically transitions to: ✅ Implemented
+        # automatically transitions to: [ok] Implemented

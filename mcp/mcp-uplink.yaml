@@ -2,13 +2,13 @@
 #
 # Tools come from the published Persisted Query safelist, delivered via the
 # same Apollo Uplink channel the Router uses. The tool set is locked to the
-# PQ manifest — no Studio UI needed once published.
+# PQ manifest - no Studio UI needed once published.
 #
 # PQ List: "ShopGraph MCP Safelist" (id: 53c1167d-fd74-4870-bc7d-7ff3b76d7e60)
 # Linked to: GA-Proposal@current
 # Published: 4 operations (revision 1)
 #
-# Hot-reloads when a new PQ manifest is published — no MCP server restart.
+# Hot-reloads when a new PQ manifest is published - no MCP server restart.
 # Pairs with Router safelisting to block arbitrary queries from AI agents.
 #
 # APOLLO_GRAPH_REF=GA-Proposal-72nrae@current
@@ -30,16 +30,16 @@ overrides:
     GetProductById: |
       Returns full details for one product by ID, including all variants
       with colorway, size, and price.
-      Required: productId (string, e.g. "product:1" – "product:5").
+      Required: productId (string, e.g. "product:1" - "product:5").
       If you lack an ID, call GetAllProducts first to find it.
     GetAllOrders: |
       Returns all orders: id (format "order:N"), buyerId, status
       (PLACED | PROCESSING | SHIPPED | DELIVERED | CANCELLED), placedAt,
       and line items (quantity, unitPrice, variant id). Does NOT include
-      estimatedDelivery — use GetOrderWithDelivery for that.
+      estimatedDelivery - use GetOrderWithDelivery for that.
     GetOrderWithDelivery: |
       Returns one order by ID including estimatedDelivery date.
-      Required: orderId (string, e.g. "order:1" – "order:4").
+      Required: orderId (string, e.g. "order:1" - "order:4").
       If you lack an order ID, call GetAllOrders first.
       Use when the user asks when an order will arrive.
   mutation_mode: explicit

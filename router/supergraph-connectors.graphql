@@ -80,7 +80,7 @@ type Order
   id: ID! @tag(name: "public")
 
   """
-  Internal buyer reference — PII-adjacent, not exposed to storefront consumers.
+  Internal buyer reference - PII-adjacent, not exposed to storefront consumers.
   """
   buyerId: ID! @tag(name: "internal")
 
@@ -130,7 +130,7 @@ type Product
   mediaUrl: String @tag(name: "public")
 
   """
-  Internal categorization — used by merchandising and ops, not exposed to storefront.
+  Internal categorization - used by merchandising and ops, not exposed to storefront.
   """
   category: String @tag(name: "internal")
 
@@ -163,7 +163,7 @@ type Query
   """
   order(id: ID!): Order @join__field(graph: ORDERS) @tag(name: "public")
 
-  """List all orders — internal ops and fulfillment use only."""
+  """List all orders - internal ops and fulfillment use only."""
   orders: [Order] @join__field(graph: ORDERS) @tag(name: "internal")
 
   """Get all available products. Optionally filter by title prefix."""
@@ -179,7 +179,7 @@ type Query
 }
 
 """
-A purchasable variant of a Product — a unique combination of size, color, and price.
+A purchasable variant of a Product - a unique combination of size, color, and price.
 Variants are the entities added to carts and orders.
 """
 type Variant
@@ -190,7 +190,7 @@ type Variant
   id: ID! @tag(name: "public")
 
   """
-  Back-reference to parent product — internal use only (avoid N+1 on storefront).
+  Back-reference to parent product - internal use only (avoid N+1 on storefront).
   """
   product: Product @join__field(graph: PRODUCTS) @tag(name: "internal")
   colorway: String @join__field(graph: PRODUCTS) @tag(name: "public")

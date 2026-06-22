@@ -55,7 +55,7 @@ type Product @key(fields: "id") @tag(name: "public") {
   mediaUrl: String @tag(name: "public")
 
   """
-  Internal categorization — used by merchandising and ops, not exposed to storefront.
+  Internal categorization - used by merchandising and ops, not exposed to storefront.
   """
   category: String @tag(name: "internal")
 
@@ -66,14 +66,14 @@ type Product @key(fields: "id") @tag(name: "public") {
 }
 
 """
-A purchasable variant of a Product — a unique combination of size, color, and price.
+A purchasable variant of a Product - a unique combination of size, color, and price.
 Variants are the entities added to carts and orders.
 """
 type Variant @key(fields: "id") @tag(name: "public") {
   id: ID! @tag(name: "public")
 
   """
-  Back-reference to parent product — internal use only (avoid N+1 on storefront).
+  Back-reference to parent product - internal use only (avoid N+1 on storefront).
   """
   product: Product @tag(name: "internal")
 
