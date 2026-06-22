@@ -47,11 +47,17 @@ A separate, self-contained demo shows how **logs + traces + metrics correlate vi
 single `trace_id`** (Jaeger + Prometheus, locally via Docker). One-liner:
 
 ```bash
-npm run obs:up                    # Jaeger + Prometheus + subgraphs + router
+npm run obs:up                    # Jaeger + Prometheus + Grafana + subgraphs + router
 ./observability/demo.sh latency   # arm a scenario; prints trace_id + clickable links
+./observability/demo.sh connectors # run a REST connector and see its spans in the trace
 ```
 
-Full runbook (2 use cases + talking points): [`observability/DEMO.md`](./observability/DEMO.md)
+Guides:
+
+- [`observability/DEMO.md`](./observability/DEMO.md) - full runbook (latency + error use cases, talking points)
+- [`observability/CONNECTORS.md`](./observability/CONNECTORS.md) - how Apollo Connectors appear in traces
+- [`observability/DYNATRACE.md`](./observability/DYNATRACE.md) - send traces and correlated logs to Dynatrace
+- [`observability/apollo-router-otel-telemetry-reference.md`](./observability/apollo-router-otel-telemetry-reference.md) - span/metric attribute reference
 
 ## Demo guide
 
