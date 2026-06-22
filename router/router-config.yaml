@@ -22,6 +22,10 @@ cors:
     - origins:
         - http://localhost:3000
         - https://studio.apollographql.com
+      # Let browser clients READ the trace-id response header (CORS hides custom
+      # response headers from JS unless they're explicitly exposed).
+      expose_headers:
+        - apollo-trace-id
 
 # Enable sandbox in development
 sandbox:
