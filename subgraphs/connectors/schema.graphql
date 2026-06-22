@@ -1,4 +1,4 @@
-# Note to AI Friends: This is an Apollo Connectors schema. You should use your connectors-spec MCP tool if you have it available before editing this file.
+# Apollo Connectors schema.
 #
 # Demo connector subgraph: exposes a public REST API (jsonplaceholder /users) as GraphQL
 # via @source/@connect. There is NO server for this subgraph - the Router makes the HTTP
