@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=./router.schema.json
+# Testing config: validates customer event logging patterns.
+# Run with:
+#   RUST_LOG="warn,apollo_router::plugins::telemetry=info,apollo_router::plugins::rhai=info,tower_http=off" \
+#   ./router --config ./router-config.events-test.yaml
+
+supergraph:
+  listen: 127.0.0.1:4000
+  introspection: true
+
+headers:
+  all:
+    request:
+      - propagate:
+          matching: .*
+
+cors:
+  policies:
+    - origins:
+        - http://localhost:3000
+        - https://studio.apollographql.com
+      expose_headers:
+        - apollo-trace-id
+
+sandbox:
+  enabled: true
+homepage:
+  enabled: false
+
+include_subgraph_errors:
+  all: true
+
+telemetry:
+  exporters:
+    tracing:
+      common:
+        resource:
+          "service.name": "apollo-router-local"
+          "service.namespace": "shopgraph"
+          "deployment.environment.name": "demo"
+        sampler: always_on
+        parent_based_sampler: false
+      propagation:
+        trace_context: true
+      experimental_response_trace_id:
+        enabled: true
+        header_name: apollo-trace-id
+      otlp:
+        enabled: true
+        endpoint: http://localhost:4327
+        protocol: grpc
+
+    metrics:
+      common:
+        resource:
+          "service.name": "apollo-router-local"
+          "service.namespace": "shopgraph"
+          "deployment.environment.name": "demo"
+      prometheus:
+        enabled: true
+        listen: 127.0.0.1:9091
+        path: /metrics
+
+    logging:
+      stdout:
+        enabled: true
+        format:
+          json:
+            display_current_span: true
+            display_span_list: true
+            display_trace_id: open_telemetry
+            display_span_id: true
+
+  instrumentation:
+    spans:
+      mode: spec_compliant
+
+    events:
+      router:
+        # FIX: operation_name is not parsed yet when router.request fires (raw HTTP stage).
+        # Conditions using operation_name here will silently never trigger.
+        # Use the unconditional shorthand; filter IntrospectionQuery at supergraph level instead.
+        request: info
+        response:
+          level: info
+          condition:
+            not:
+              eq:
+                - operation_name: string
+                - "IntrospectionQuery"
+        error: error
+
+      supergraph:
+        # operation_name is available here — GraphQL body has been parsed.
+        # This is the right place to suppress IntrospectionQuery logging.
+        request:
+          level: info
+          condition:
+            not:
+              eq:
+                - operation_name: string
+                - "IntrospectionQuery"
+        response:
+          level: info
+          condition:
+            not:
+              eq:
+                - operation_name: string
+                - "IntrospectionQuery"
+        error: error
+
+      subgraph:
+        request: info
+        response: info
+        # Custom event: logs the idp-trace-id that was forwarded to the subgraph.
+        # subgraph_request_header captures the outbound header value (what the router
+        # sent to the subgraph), not a response header returned by the subgraph.
+        subgraph.response:
+          message: "Subgraph response"
+          level: info
+          "on": response
+          attributes:
+            "idp-trace-id":
+              subgraph_request_header: "idp-trace-id"
+        error: error
+
+      connector:
+        request: info
+        response: info
+        error: error
