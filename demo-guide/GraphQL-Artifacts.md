@@ -1,6 +1,6 @@
 # Graph Artifacts
 
-Version pinned supergraph delivery for the Apollo Router: what graph artifacts are, how to get a reference, how to deploy and roll back, and how to verify.
+Version pinned supergraph delivery for the Apollo Router: what graph artifacts are, how to get a reference, how to tag them, how to deploy and roll back, and how to verify.
 
 Verified against Apollo Router v2.15.0, Rover 0.40.0, and the official Apollo documentation. See "Current status and limitations" for status and version specific behavior.
 
@@ -81,7 +81,74 @@ The endpoint is `https://graphql.api.apollographql.com/api/graphql`. The field n
 
 Rover does not provide a graph artifact lookup or a launch listing command. There is no `rover graph list-launches`. Use the Studio Launches page or the Platform API above.
 
-## 5. Deployment Patterns
+## 5. Tagging a Graph Artifact
+
+Apollo OCI distribution stores graph artifacts (composed supergraph schemas) that GraphOS Router fetches at runtime. Each artifact is identified by a content-addressed digest, but you can assign it a human-readable tag so consumers (and routers) can refer to it by name instead of by digest. Tagging is what makes a tag reference (see section 3) a moving channel you can promote across environments, and it's what enables hot reload on Router v2.11+.
+
+All tagging commands live under the `rover graph-artifact` subcommand.
+
+### `graph-artifact tag` — assign a tag
+
+Assigns a tag to a specific artifact, identified by either its digest or its artifact ID:
+
+```bash
+rover graph-artifact tag <TAG> --graph-id <GRAPH_ID> --digest <DIGEST>
+# or
+rover graph-artifact tag <TAG> --graph-id <GRAPH_ID> --graph-artifact-id <GRAPH_ARTIFACT_ID>
+```
+
+- `--graph-id <GRAPH_ID>` — the ID of the graph that owns the artifact.
+- `<TAG>` — the name to assign to the artifact.
+- Provide exactly one of `--digest` or `--graph-artifact-id` to identify the artifact.
+
+### `graph-artifact untag` — remove a tag
+
+Removes a tag from a graph, including its full history. Tags managed by Apollo can't be deleted:
+
+```bash
+rover graph-artifact untag <TAG> --graph-id <GRAPH_ID>
+```
+
+- `--graph-id <GRAPH_ID>` — the ID of the graph that owns the tag.
+- `<TAG>` — the name of the tag to remove.
+
+### `graph-artifact fetch` — look up artifact metadata
+
+Fetches metadata about a graph artifact from Apollo's OCI distribution: its content-addressed digest, the launch that produced it, and (when fetching by tag) its tag assignment history. Provide exactly one of:
+
+| Flag | Behavior |
+|---|---|
+| `-t, --tag-name` | Fetch by tag name. Mutually exclusive with `--graph-artifact-id` and `--digest`. |
+| `-g, --graph-artifact-id` | Fetch by artifact ID. Mutually exclusive with `--tag-name` and `--digest`. |
+| `-d, --digest` | Fetch by content-addressed digest. Mutually exclusive with `--tag-name` and `--graph-artifact-id`. |
+| `--history-limit` | When fetching by tag, the number of tag history entries to include (default `5`, max `20`). |
+
+The output includes the digest, the producing launch, and (when fetching by tag) the tag name plus a history table of recent tag reassignments — each row shows the digest that was assigned and when the reassignment occurred.
+
+If no artifact matches the given tag name, artifact ID, or digest, Rover reports "Artifact not found."
+
+### `graph-artifact list-tags` — list tags
+
+Lists the tags applied to artifacts in a graph, either across the whole graph or scoped to one artifact:
+
+```bash
+# Every tag on any artifact in the graph
+rover graph-artifact list-tags --graph-id <GRAPH_ID>
+
+# Only tags on a specific artifact, by digest
+rover graph-artifact list-tags --graph-id <GRAPH_ID> --digest <DIGEST>
+
+# Cap the number of results returned
+rover graph-artifact list-tags --graph-id <GRAPH_ID> --limit <LIMIT>
+```
+
+- `--graph-id <GRAPH_ID>` — the ID of the graph whose tags to list.
+- `--digest <DIGEST>` — optional; narrows output to tags on that artifact. Omit to list tags across all artifacts in the graph.
+- `--limit <LIMIT>` — maximum number of tags to return (default `100`).
+
+By default Rover prints one tag per line on stdout, which is easy to pipe into other tools. Pass `--format json` for machine-readable output of the form `{ "data": { "tags": [...] } }`.
+
+## 6. Deployment Patterns
 
 ### Non Kubernetes (manual or VM)
 
@@ -134,7 +201,7 @@ jobs:
 
 The Operator manages composition and router deployment declaratively. See the appendix for CRDs, install, and full examples.
 
-## 6. Verification Checklist
+## 7. Verification Checklist
 
 ```bash
 # 1. Composition and breaking change check before publishing
@@ -183,7 +250,7 @@ To confirm which artifact a running process uses, inspect the environment on the
 ps aux | grep "[r]outer" | grep -o "artifact.api.apollographql.com/[^ ]*"
 ```
 
-## 7. Rollback
+## 8. Rollback
 
 Manual or Docker: repoint to the previous good digest and redeploy.
 
@@ -195,6 +262,14 @@ docker run -e APOLLO_GRAPH_ARTIFACT_REFERENCE=$APOLLO_GRAPH_ARTIFACT_REFERENCE \
 
 The old schema runs again in seconds. No recomposition is needed, because the artifact is prebuilt and immutable.
 
+If you're using tag references, rolling back can also mean reassigning the tag to the previous digest instead of touching the deployment at all:
+
+```bash
+rover graph-artifact tag production --graph-id my-graph --digest <PREVIOUS_DIGEST>
+```
+
+On Router v2.11+, a router running with a tag reference picks up the reassignment via hot reload, with no restart or redeploy required.
+
 Operator: pin the Supergraph to a known good launch ID. Obtain the launch ID from the Studio Launches page or the Platform API.
 
 ```bash
@@ -204,7 +279,7 @@ kubectl patch supergraph my-supergraph-router --type merge \
 
 For automated, safe rollouts and rollbacks the Operator integrates with Argo Rollouts through `spec.deployment`.
 
-## 8. Current Status and Limitations
+## 9. Current Status and Limitations
 
 | Item | Detail |
 |---|---|
@@ -213,10 +288,11 @@ For automated, safe rollouts and rollbacks the Operator integrates with Argo Rol
 | Hot reload | Digest references do not hot reload; switching versions requires a restart or redeploy. Tag references hot reload on v2.11 or later. |
 | Schema source | Set only through CLI flags or env vars, never a `router.yaml` key. |
 | Scope | Supergraph level only. No separate subgraph artifact. |
-| Rover | No launch listing or artifact lookup command. Use Studio or the Platform API. |
+| Rover | No launch listing or artifact lookup command for launches. Use Studio or the Platform API. Tagging, untagging, fetching, and listing tags for artifacts is supported via `rover graph-artifact`. |
+| Tag deletion | Tags managed by Apollo can't be deleted with `graph-artifact untag`. |
 | Federation | Managed federation only. |
 
-## 9. Quick Reference
+## 10. Quick Reference
 
 | Task | Command |
 |---|---|
@@ -227,6 +303,10 @@ For automated, safe rollouts and rollbacks the Operator integrates with Argo Rol
 | Introspect a running subgraph | `rover subgraph introspect https://orders.example.com/graphql` |
 | Fetch composed supergraph | `rover graph fetch my-graph@prod` |
 | Get an artifact reference | Studio Launches page (Copy), or the Platform API |
+| Tag an artifact | `rover graph-artifact tag <TAG> --graph-id <GRAPH_ID> --digest <DIGEST>` |
+| Remove a tag | `rover graph-artifact untag <TAG> --graph-id <GRAPH_ID>` |
+| Fetch artifact metadata | `rover graph-artifact fetch --graph-id <GRAPH_ID> --tag-name <TAG>` |
+| List tags | `rover graph-artifact list-tags --graph-id <GRAPH_ID>` |
 | Run latest (dev or staging) | `APOLLO_GRAPH_REF=my-graph@prod ./router --config router.yaml` |
 | Run a pinned artifact | `APOLLO_GRAPH_ARTIFACT_REFERENCE=artifact.api.apollographql.com/my-graph@sha256:<DIGEST> ./router --config router.yaml` |
 | Operator deploy | `kubectl apply -f supergraph.yaml` |
@@ -353,6 +433,7 @@ Status conditions by resource:
 | Topic | URL |
 |---|---|
 | Graph Artifacts | https://www.apollographql.com/docs/graphos/platform/schema-management/delivery/graph-artifacts |
+| Rover `graph-artifact` command (tagging) | https://www.apollographql.com/docs/rover/commands/graph-artifact |
 | GraphOS Operator | https://www.apollographql.com/docs/apollo-operator |
 | GraphOS Platform API | https://www.apollographql.com/docs/graphos/platform/platform-api |
 | Apollo Router configuration | https://www.apollographql.com/docs/graphos/routing/configuration/overview |
