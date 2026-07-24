@@ -36,6 +36,18 @@ homepage:
 include_subgraph_errors:
   all: true
 
+# --- Rhai: redact sensitive fields from response logs ---
+# Clients receive the FULL response; only what the router LOGS is redacted.
+# The script logs a redacted COPY of the response body and never writes it back,
+# so the client's bytes are untouched. This works together with
+# telemetry.instrumentation.events.router.response: off below — that built-in
+# path would log the raw, unredacted body, so response logging is done here instead.
+# scripts path is relative to the router's working dir (see start_router.sh: it
+# runs `./router` from router/, so ./rhai -> router/rhai).
+rhai:
+  scripts: ./rhai
+  main: main.rhai
+
 # --- Telemetry: Trace Propagation & Logging -------------
 telemetry:
   exporters:
