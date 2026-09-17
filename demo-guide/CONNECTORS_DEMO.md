@@ -6,7 +6,7 @@ governance gate this repo already enforces.
 
 ## Credentials — two keys, and why that matters
 
-| Path | Credential | Role | Can publish? |
+| Path | Credential | Role | Publish access |
 |---|---|---|---|
 | `graphos-tools` MCP (`x-api-key` header) | `GRAPHOS_API_KEY` | Observer | **No** |
 | `rover subgraph check` / `publish` | `APOLLO_KEY` | Contributor+ | Yes |
@@ -16,7 +16,7 @@ from the environment, the MCP server reads `GRAPHOS_API_KEY` from its header,
 and the two never meet.
 
 **This is a demo beat, not plumbing.** Three independent layers stop an agent
-shipping bad schema, and none of them is "we prompted it not to":
+shipping bad schema, and none of them is a prompt instruction telling it not to:
 
 1. **The MCP key is Observer.** The agent's read path is incapable of writing.
    Not restricted — incapable.
@@ -101,8 +101,8 @@ rover subgraph publish "$APOLLO_GRAPH_REF" \
 
 Back in Claude Code, with `graphos-tools` connected:
 
-> "Pull the latest launch. Did the connectors subgraph land, and did it compose
-> cleanly?"
+> "Pull the latest launch. Confirm whether the connectors subgraph landed and
+> composed cleanly."
 
 `GetLatestLaunch` shows the launch, the subgraph change, and the schema diff. The
 same MCP server you used for read-only health checks now confirms the write you

@@ -26,21 +26,21 @@ claude mcp add --transport http --scope project graphos-tools \
 
 ## 1. Router & Variant Details
 
-- "Show the federation version, subgraphs, and router status for my variant."
-- "What can GraphOS tell you about this variant's router, and what can't it see? Be specific about why."
+- "Show the federation version, subgraphs, and router status for this variant."
+- "Explain what GraphOS can and can't see about this variant's router, and be specific about why."
 
 The second one is the better opener. An agent that names its own blind spots
 earns more trust than one that answers everything.
 
 ## 2. Launch Stability
 
-- "Have the recent launches on my graph been stable, or were there repeated failures?"
-- "Start from the latest launch, spot any composition error, then walk the launch history to tell me if it's a one-off or a recurring pattern."
+- "Check whether the recent launches on this graph have been stable, or whether there were repeated failures."
+- "Start from the latest launch, spot any composition error, then walk the launch history to determine whether it's a one-off or a recurring pattern."
 
 ## 3. Operation & Subgraph Metrics
 
-- "Which operations have the highest p99 latency over the last week?"
-- "Which of my subgraphs have the highest error rates this month?"
+- "Find the operations with the highest p99 latency over the last week."
+- "Find which subgraphs have the highest error rates this month."
 - "Pull the busiest operations, then their latency and error metrics, and flag any high-traffic operation that's slow or failing."
 
 > Metrics are **per-day buckets** and the window must end at least a day ago.
@@ -48,41 +48,41 @@ earns more trust than one that answers everything.
 
 ## 4. Persisted Query Status
 
-- "Does this variant have a persisted query list, and how many operations are in the current build?"
-- "Compare the operations in live traffic against the PQL - which operations would be rejected if I turned on safelist-only?"
+- "Check whether this variant has a persisted query list, and how many operations are in the current build."
+- "Compare the operations in live traffic against the PQL, and identify which operations would be rejected if safelist-only were enabled."
 
 The answer is a list of **operations**, not a traffic percentage and not a
 per-client breakdown. Say that up front; it lands better than being asked.
 
 ## 5. Schema Lint
 
-- "Pull the lint results from my recent check workflows - what's failing and where?"
-- "Walk me through each error-severity diagnostic: the coordinate, the rule, and what it would take to fix."
+- "Pull the lint results from recent check workflows, and report what's failing and where."
+- "Walk through each error-severity diagnostic: the coordinate, the rule, and what it would take to fix."
 
 > Lint is **graph-scoped** and reads from past *check workflows*. It cannot
-> evaluate a hypothetical change. "Would adding `estimatedDelivery` pass lint?"
-> is a `rover subgraph check` question - see `CONNECTORS_DEMO.md` for that loop.
+> evaluate a hypothetical change. Whether adding `estimatedDelivery` would pass
+> lint is a `rover subgraph check` question - see `CONNECTORS_DEMO.md` for that loop.
 
 ## 6. Audit & Governance
 
 - "Audit this graph for governance issues: lint diagnostics, persisted-query coverage, and launch stability."
-- "Give me a governance checklist: lint status, PQ coverage, and launch stability, each marked pass/fail." → `/governance`
+- "Produce a governance checklist: lint status, PQ coverage, and launch stability, each marked pass/fail." → `/governance`
 
 Watch for **empty lint results**. That means no checks have ever run, not a
 clean schema. A good agent says UNKNOWN there; call it out when it does.
 
 ## 7. Closer
 
-- "Is my graph healthy? Summarize as Attention Required, Review Recommended, or What's Working Well." → `/graph-health`
-- "Why would the Clients and Insights pages show no data for a graph that's clearly receiving traffic?" (real bug, not scripted)
+- "Assess whether this graph is healthy. Summarize as Attention Required, Review Recommended, or What's Working Well." → `/graph-health`
+- "Investigate why the Clients and Insights pages show no data for a graph that's clearly receiving traffic." (real bug, not scripted)
 
 ## 8. Pre/Post-Migration Comparison
 
-- "Compare launch stability before and after this migration - did it make things better or worse?"
+- "Compare launch stability before and after this migration, and determine whether it made things better or worse."
 
 ## 9. Deprecation / Safe-Removal Analysis
 
-- "The last launch deprecated `legacyPricing`. Which operations did that launch report as affected, how much traffic do they carry, and which clients would break?" → `/change-impact`
+- "The last launch deprecated `legacyPricing`. Report which operations that launch flagged as affected, how much traffic they carry, and which clients would break." → `/change-impact`
 
 > Reframed from the original. There is **no field-level usage index** on this
 > server - you can't ask which operations reference a coordinate. The launch
@@ -97,13 +97,13 @@ clean schema. A good agent says UNKNOWN there; call it out when it does.
 
 ## 10. Contract Variant Readiness
 
-- "Pull lint results and the latest launch for the contract variant - would a publish compose cleanly right now?"
+- "Pull lint results and the latest launch for the contract variant, and determine whether a publish would compose cleanly right now."
 
 > No tool exposes contract operation limits. Check that in Studio.
 
 ## 11. Multi-Team Governance Scorecard
 
-- "Run the governance checklist against `team-a@prod` and `team-b@prod` and tell me which needs the most attention." → `/governance`
+- "Run the governance checklist against `team-a@prod` and `team-b@prod`, and report which one needs the most attention." → `/governance`
 
 Note that lint is graph-scoped, so it's reported once per graph, not per team
 variant. Worth saying out loud rather than letting someone spot it.
@@ -119,31 +119,31 @@ variant. Worth saying out loud rather than letting someone spot it.
 
 ## 13. Persisted-Query Rollout Planning
 
-- "What's in live traffic but missing from the PQL, and what's registered but no longer used?" → `/pq-rollout`
+- "Identify what's in live traffic but missing from the PQL, and what's registered but no longer used." → `/pq-rollout`
 
 > Operations, not clients. Owner assignment is a Studio Clients-page step.
 
 ## 14. Self-Service Pre-Ticket Diagnostics
 
-- "Before I file a support ticket about this build failure, pull the lint results and latest launch details so I can attach them." → `/pre-ticket`
+- "Before filing a support ticket about this build failure, pull the lint results and latest launch details to attach to it." → `/pre-ticket`
 
 Best ROI story in the deck - it's support deflection your CS counterpart can
 put a number on.
 
 ## 15. Cost / Capacity Justification
 
-- "Show traffic on the busiest operations over the last 30 days - is this graph outgrowing its current router setup?"
+- "Show traffic on the busiest operations over the last 30 days, and assess whether this graph is outgrowing its current router setup."
 
 > `GetTopOperations` caps the window at 31 days and is rate limited. One call.
 
 ## 16. New-Engineer Onboarding Walkthrough
 
-- "I'm new to this graph - walk me through its subgraphs, recent stability, and anything that looks unhealthy."
+- "Walk through this graph's subgraphs, recent stability, and anything that looks unhealthy, for someone new to it."
 
 ## 17. Docs, Grounded (no key required)
 
-- "What's the correct `@connect` selection syntax for a nested REST field?"
-- "Which router version introduced <feature>, and what's the config shape?"
+- "Provide the correct `@connect` selection syntax for a nested REST field."
+- "Identify which router version introduced <feature>, and what the config shape is."
 
 Run these with `WebSearch`/`WebFetch` denied (see `.claude/settings.json`). The
 answer can only have come from `ApolloDocsSearch`. That's the point: versioned,
