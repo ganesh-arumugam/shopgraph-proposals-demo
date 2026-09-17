@@ -1,0 +1,11 @@
+# Local composition config for the weather connector demo (Track B rehearsal).
+# Single connector subgraph, no backing service - the Router calls Open-Meteo directly.
+#
+#   rover dev --supergraph-config router/supergraph-weather.yaml
+federation_version: "=2.14.1"
+
+subgraphs:
+  weather:
+    routing_url: http://connectors.invalid/placeholder
+    schema:
+      file: ../subgraphs/weather/schema.graphql

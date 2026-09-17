@@ -1,0 +1,54 @@
+config:
+  schema: ../schema.graphql
+
+tests:
+  - name: "currentWeather flattens the nested current_weather object"
+    target: "Query.currentWeather"
+    variables:
+      $args:
+        latitude: "52.52"
+        longitude: "13.41"
+    apiResponseBody: |
+      {
+        "latitude": 52.52,
+        "longitude": 13.41,
+        "timezone": "GMT",
+        "current_weather": {
+          "temperature": 13.3,
+          "windspeed": 10.6,
+          "winddirection": 262,
+          "weathercode": 3,
+          "is_day": 1,
+          "time": "2026-09-11T15:00"
+        }
+      }
+    expect:
+      connectorRequest:
+        url: "https://api.open-meteo.com/v1/forecast?current_weather=true&latitude=52.52&longitude=13.41"
+      connectorResponse: |
+        {
+          "temperature": 13.3,
+          "windSpeed": 10.6,
+          "windDirection": 262,
+          "weatherCode": 3,
+          "observedAt": "2026-09-11T15:00"
+        }
+
+  - name: "dailyHighForecast flattens the nested daily array"
+    target: "Query.dailyHighForecast"
+    variables:
+      $args:
+        latitude: "52.52"
+        longitude: "13.41"
+    apiResponseBody: |
+      {
+        "daily": {
+          "time": ["2026-09-11", "2026-09-12"],
+          "temperature_2m_max": [21.4, 19.8]
+        }
+      }
+    expect:
+      connectorRequest:
+        url: "https://api.open-meteo.com/v1/forecast?daily=temperature_2m_max&timezone=auto&latitude=52.52&longitude=13.41"
+      connectorResponse: |
+        [21.4, 19.8]

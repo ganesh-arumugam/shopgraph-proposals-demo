@@ -1,3 +1,11 @@
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "graphos-tools": {
+      "type": "http",
+      "url": "https://mcp.apollographql.com",
+      "headers": {
+        "x-api-key": "${GRAPHOS_API_KEY}"
+      }
+    }
+  }
 }

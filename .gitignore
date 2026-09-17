@@ -4,6 +4,7 @@ router/router
 *.tar.gz
 dist/
 .DS_Store
+.claude/settings.local.json
 
 # observability demo runtime (pids/logs)
 observability/.run/

@@ -1,0 +1,41 @@
+# Demo connector subgraph: exposes the public Open-Meteo forecast API as GraphQL via
+# @source/@connect. There is NO server for this subgraph - the Router makes the HTTP
+# call itself. Zero to a federated REST-backed field, spec-grounded via
+# ApolloConnectorsSpec.
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.12")
+  @link(url: "https://specs.apollo.dev/connect/v0.3", import: ["@source", "@connect"])
+  @source(name: "open_meteo", http: { baseURL: "https://api.open-meteo.com" })
+
+type Query {
+  "Current weather conditions for a given latitude/longitude."
+  currentWeather(latitude: Float!, longitude: Float!): CurrentWeather
+    @connect(
+      source: "open_meteo"
+      http: { GET: "/v1/forecast?current_weather=true&latitude={$args.latitude}&longitude={$args.longitude}" }
+      selection: """
+      temperature: current_weather.temperature
+      windSpeed: current_weather.windspeed
+      windDirection: current_weather.winddirection
+      weatherCode: current_weather.weathercode
+      observedAt: current_weather.time
+      """
+    )
+
+  "Daily maximum temperature forecast for a given latitude/longitude."
+  dailyHighForecast(latitude: Float!, longitude: Float!): [Float]
+    @connect(
+      source: "open_meteo"
+      http: { GET: "/v1/forecast?daily=temperature_2m_max&timezone=auto&latitude={$args.latitude}&longitude={$args.longitude}" }
+      selection: "daily.temperature_2m_max"
+    )
+}
+
+type CurrentWeather {
+  temperature: Float
+  windSpeed: Float
+  windDirection: Int
+  weatherCode: Int
+  observedAt: String
+}

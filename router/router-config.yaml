@@ -50,6 +50,12 @@ rhai:
 
 # --- Telemetry: Trace Propagation & Logging -------------
 telemetry:
+  # Without this, Apollo Studio only gets router/supergraph-level usage stats -
+  # the per-subgraph error rate / latency breakdown the GraphOS MCP Server's
+  # subgraph metrics tool reports on is sent via OTLP and requires this flag.
+  apollo:
+    subgraph_metrics: true
+
   exporters:
     tracing:
       common:

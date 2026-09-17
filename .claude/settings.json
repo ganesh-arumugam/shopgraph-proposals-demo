@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "deny": [
+      "WebSearch",
+      "WebFetch",
+      "Bash(wget *)",
+      "Agent(Explore)",
+      "Bash(rover subgraph publish *)",
+      "Bash(rover subgraph delete *)",
+      "Bash(rover graph publish *)",
+      "Bash(rover persisted-queries *)"
+    ],
+    "allow": [
+      "mcp__graphos-tools__*",
+      "Bash(rover dev *)",
+      "Bash(rover subgraph check *)",
+      "Bash(rover subgraph list *)",
+      "Bash(rover connector test *)",
+      "Bash(npm run *)",
+      "Bash(git diff *)",
+      "Bash(git status *)"
+    ]
+  }
+}
