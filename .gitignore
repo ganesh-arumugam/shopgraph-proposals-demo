@@ -8,3 +8,10 @@ dist/
 
 # observability demo runtime (pids/logs)
 observability/.run/
+
+# abandoned books connector rehearsal - no backing server, not wired into demo docs
+subgraphs/books/
+router/supergraph-books.yaml
+
+# internal rehearsal notes - not for the shared repo
+demo-guide/ONEMAIN_PREP_SUMMARY.md
