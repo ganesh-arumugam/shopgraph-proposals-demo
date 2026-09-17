@@ -48,6 +48,12 @@ include_subgraph_errors:
 
 # --- Telemetry: sampled tracing + structured logging + narrow events ---------
 telemetry:
+  # Per-subgraph error rate / latency breakdown in Apollo Studio (and what the
+  # GraphOS MCP Server's subgraph metrics tool reports on) requires this flag -
+  # it's sent via OTLP, off by default.
+  apollo:
+    subgraph_metrics: true
+
   exporters:
     tracing:
       common:

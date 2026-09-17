@@ -66,6 +66,30 @@ See [`demo-guide/DEMO_GUIDE.md`](./demo-guide/DEMO_GUIDE.md) for the full SE scr
 Full setup instructions: [`demo-guide/SETUP.md`](./demo-guide/SETUP.md)
 Studio configuration: [`demo-guide/studio-settings.md`](./demo-guide/studio-settings.md)
 
+## GraphOS MCP Server demo
+
+Quick-reference prompts for showing AI agents connecting directly to GraphOS for
+read-only graph health checks.
+
+See [`demo-guide/GRAPHOS_MCP_DEMO.md`](./demo-guide/GRAPHOS_MCP_DEMO.md) for the
+prompt library and the tools' known limits.
+
+## Connectors demo
+
+Authoring a Connectors subgraph, checking it against the Proposals gate, and
+publishing it — then verifying the launch back through the MCP server.
+
+See [`demo-guide/CONNECTORS_DEMO.md`](./demo-guide/CONNECTORS_DEMO.md).
+
+## Agent setup
+
+`.mcp.json` registers the `graphos-tools` MCP server at project scope; it reads
+`GRAPHOS_API_KEY` from the shell environment (not from `.env` automatically —
+`set -a; source .env; set +a` first). `.claude/settings.json` denies web search
+and fetch so Apollo answers come from the documentation tools rather than the
+open web. `.claude/commands/` holds the demo slash commands, and
+`.claude/graphos-tool-constraints.md` documents what the tools can and can't do.
+
 ## Key files
 
 ```
